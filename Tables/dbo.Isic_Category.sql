@@ -1,0 +1,9 @@
+CREATE TABLE [dbo].[Isic_Category]
+(
+[CODE] [bigint] NOT NULL IDENTITY(1, 1),
+[ISIC_DESC] [nvarchar] (250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[STAT] [varchar] (3) COLLATE SQL_Latin1_General_CP1_CI_AS NULL CONSTRAINT [DF_Isic_Category_STAT] DEFAULT ('002')
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[Isic_Category] ADD CONSTRAINT [PK_Isic_Category] PRIMARY KEY CLUSTERED  ([CODE]) ON [PRIMARY]
+GO

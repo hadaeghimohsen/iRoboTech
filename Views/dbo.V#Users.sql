@@ -1,0 +1,11 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+
+CREATE VIEW [dbo].[V#Users] AS
+SELECT a.TitleFa AS [USER_NAME], UPPER(a.UserDb) AS USER_DB  FROM iProject.DataGuard.[User] a WHERE LEN(USERDB) > 0;
+
+
+GO

@@ -1,0 +1,14 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+CREATE PROCEDURE [dbo].[DEL_ODST_P]
+    @Ordr_Code BIGINT,
+    @Code BIGINT     
+AS
+BEGIN
+    DELETE  dbo.Order_State
+    WHERE   ORDR_CODE = @Ordr_Code
+      AND CODE = @Code;
+END;
+GO

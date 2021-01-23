@@ -1,0 +1,12 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+create PROCEDURE [dbo].[DEL_APBS_P]
+   @Code BIGINT
+AS 
+BEGIN
+   DELETE dbo.App_Base_Define
+    WHERE CODE = @Code;
+END 
+GO

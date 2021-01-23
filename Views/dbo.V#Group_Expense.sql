@@ -1,0 +1,9 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+
+CREATE VIEW [dbo].[V#Group_Expense] AS
+SELECT *
+  FROM iScsc.dbo.Group_Expense;
+GO

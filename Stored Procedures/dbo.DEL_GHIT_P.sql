@@ -1,0 +1,13 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+create PROC [dbo].[DEL_GHIT_P]
+   @Code BIGINT
+AS
+BEGIN
+  DELETE dbo.Group_Header_Item
+   WHERE CODE = @Code;
+   
+END;
+GO
