@@ -32,7 +32,9 @@ CREATE TABLE [dbo].[Service_Robot]
 [CRET_DATE] [datetime] NULL,
 [MDFY_BY] [varchar] (250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [MDFY_DATE] [datetime] NULL,
-[INST_USER_NAME] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
+[INST_USER_NAME] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[BRTH_DATE] [date] NULL,
+[MARG_DATE] [date] NULL
 ) ON [PRIMARY]
 GO
 SET QUOTED_IDENTIFIER ON
@@ -169,9 +171,13 @@ ALTER TABLE [dbo].[Service_Robot] ADD CONSTRAINT [SRBT_ROBO_FK] FOREIGN KEY ([RO
 GO
 ALTER TABLE [dbo].[Service_Robot] ADD CONSTRAINT [SRBT_SERV_FK] FOREIGN KEY ([SERV_FILE_NO]) REFERENCES [dbo].[Service] ([FILE_NO])
 GO
+EXEC sp_addextendedproperty N'MS_Description', N'تاریخ تولد', 'SCHEMA', N'dbo', 'TABLE', N'Service_Robot', 'COLUMN', N'BRTH_DATE'
+GO
 EXEC sp_addextendedproperty N'MS_Description', N'زمان انقضا', 'SCHEMA', N'dbo', 'TABLE', N'Service_Robot', 'COLUMN', N'EXPR_DATE'
 GO
 EXEC sp_addextendedproperty N'MS_Description', N'نام کاربری اینستاگرام', 'SCHEMA', N'dbo', 'TABLE', N'Service_Robot', 'COLUMN', N'INST_USER_NAME'
+GO
+EXEC sp_addextendedproperty N'MS_Description', N'تاریخ ازدواج', 'SCHEMA', N'dbo', 'TABLE', N'Service_Robot', 'COLUMN', N'MARG_DATE'
 GO
 EXEC sp_addextendedproperty N'MS_Description', N'بازاریاب ربات فروشگاه انلاین', 'SCHEMA', N'dbo', 'TABLE', N'Service_Robot', 'COLUMN', N'MRKT_STAT'
 GO

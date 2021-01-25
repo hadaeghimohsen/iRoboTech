@@ -877,18 +877,20 @@ BEGIN
 	   END
 	   ELSE IF @CmndText IN ( 'lessckotcart', 'moreckotcart' )
 	   BEGIN
+	      -- اضافه کردن مدت زمان ده دقیقه به درخواست برای پرداخت
+	      UPDATE dbo.[Order] SET STRT_DATE = DATEADD(MINUTE, 10, STRT_DATE) WHERE CODE = @OrdrCode;
 	      IF EXISTS(SELECT * FROM dbo.[Order] WHERE CODE = @OrdrCode AND DEBT_DNRM > 0)
 	      BEGIN
 	         -- Next Step #. Payment
 	         -- Dynamic
-	         --SET @X = (
-	         --   SELECT dbo.STR_FRMT_U('./{0};-{1}$pay#' , '*0*3#' + ',' + CAST(@OrdrCode AS NVARCHAR(50))) AS '@data',
-	         --          @index AS '@order',
-	         --          N'💳 کارت به کارت' AS "text()"
-	         --      FOR XML PATH('InlineKeyboardButton')
-	         --);
-	         --SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
-	         --SET @index += 1;
+	         SET @X = (
+	            SELECT dbo.STR_FRMT_U('./{0};-{1}$pay#' , '*0*3#' + ',' + CAST(@OrdrCode AS NVARCHAR(50))) AS '@data',
+	                   @index AS '@order',
+	                   N'💳 کارت به کارت' AS "text()"
+	               FOR XML PATH('InlineKeyboardButton')
+	         );
+	         SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
+	         SET @index += 1;
 	         
 	         SET @X = (
 	            SELECT '' AS '@data',

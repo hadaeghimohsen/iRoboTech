@@ -50,7 +50,7 @@ BEGIN
                 @MakeDayDnrm SMALLINT,                 @MakeHourDnrm SMALLINT,                     @MakeMintDnrm SMALLINT,
                 @DelvDayDnrm SMALLINT,                 @DelvHourDnrm SMALLINT,                     @DelvMintDnrm SMALLINT,
                 @ProdLifeStat VARCHAR(3),              @ProdSuplLoctStat VARCHAR(3),               @ProdSuplLoctDesc NVARCHAR(250),
-                @RespShipCostType VARCHAR(3);
+                @RespShipCostType VARCHAR(3),          @ProdType VARCHAR(3);
 
         SELECT @Token = @X.query('/Robot').value('(Robot/@token)[1]', 'VARCHAR(100)'),
                @UssdCode = @X.query('//Message').value('(Message/@ussd)[1]', 'VARCHAR(250)'),
@@ -10293,7 +10293,8 @@ BEGIN
                        @ProdLifeStat = PROD_LIFE_STAT,
                        @ProdSuplLoctStat = PROD_SUPL_LOCT_STAT,
                        @ProdSuplLoctDesc = PROD_SUPL_LOCT_DESC,
-                       @RespShipCostType = RESP_SHIP_COST_TYPE
+                       @RespShipCostType = RESP_SHIP_COST_TYPE,
+                       @ProdType = PROD_TYPE_DNRM
                 FROM dbo.Robot_Product
                 WHERE ROBO_RBID = @Rbid
                       AND TARF_CODE = @ParamText;
@@ -10360,7 +10361,7 @@ BEGIN
                                 + N'*ویژگی های محصول*' + CHAR(10) 
                                 + (SELECT N'⏱️ *- ' + d.DOMN_DESC + N' -*' FROM dbo.[D$PROT] d WHERE d.VALU = ISNULL(@ProdLifeStat, '001')) + CHAR(10)
                                 + REPLACE(N'{0}', N'{0}', ISNULL(@ProdFetr, N' ')) + CHAR(10)
-                                + CHAR(10) + N'📦 موجودی کالا : *'
+                                + CHAR(10) + N'📦 موجودی محصول : *'
                                 + CASE ISNULL(@ViewInvrStat, '002')
                                       WHEN '001' THEN -- نمایش تعداد موجودی کالا
                                           CAST(@CrntNumbDnrm AS NVARCHAR(32)) + N' ' + ISNULL(@UnitDescDnrm, N'واحد')
@@ -10376,41 +10377,45 @@ BEGIN
                                                   N'❌ ناموجود'
                                           END
                                   END + N'*' + dbo.STR_COPY_U(N' ', 5) --+ CHAR(10) + CHAR(10) 
-                                + CASE -- زمان تولید
-                                      WHEN ISNULL(@CrntNumbDnrm, 0) != 0 THEN -- اگر کالا موجود باشد
-                                           N'🚚 *آماده ارسال*'
-                                      ELSE -- اگر کالا موجود نباشد
-                                          CASE (@MakeDayDnrm + @MakeHourDnrm + @MakeMintDnrm)
-                                               WHEN 0 THEN N''
-                                               ELSE 
-                                                N'🎛️ زمان تولید : ' 
-                                                + CASE @MakeDayDnrm WHEN 0 THEN N'' ELSE CAST(@MakeDayDnrm AS VARCHAR(3)) + N' روز' END 
-                                                + CASE @MakeHourDnrm WHEN 0 THEN N'' ELSE CAST(@MakeHourDnrm AS VARCHAR(3)) + N' ساعت' END 
-                                                + CASE @MakeMintDnrm WHEN 0 THEN N'' ELSE CAST(@MakeMintDnrm AS VARCHAR(3)) + N' دقیقه' END 
-                                          END 
-                                  END + CHAR(10)
-                                + CASE -- زمان تحویل
-                                      WHEN @DelvDayDnrm != 0 OR @DelvHourDnrm != 0 or @DelvMintDnrm != 0 THEN 
-                                           dbo.STR_COPY_U(N' ', 7) 
-                                          + N'زمان تحویل : ' 
-                                          + CASE @DelvDayDnrm WHEN 0 THEN N'' ELSE N'*' + CAST(@DelvDayDnrm AS VARCHAR(3)) + N'* روز ' END 
-                                          + CASE @DelvHourDnrm WHEN 0 THEN N'' ELSE N'*' + CAST(@DelvHourDnrm AS VARCHAR(3)) + N'* ساعت ' END 
-                                          + CASE @DelvMintDnrm WHEN 0 THEN N'' ELSE N'*' + CAST(@DelvMintDnrm AS VARCHAR(3)) + N'* دقیقه ' END + CHAR(10)
-                                      ELSE N''
-                                  END + 
-                                  -- 1399/09/20 * اضافه شدن حوزه تامین کننده و هزینه ارسال باربری
-                                + CASE ISNULL(@ProdSuplLoctStat, '001')
-                                       WHEN '001' THEN N'' 
-                                       WHEN '002' THEN N'📌 حوزه تامین : *' + ISNULL(@ProdSuplLoctDesc, N'مشخص نیست') + N'  •  ' + 
-                                       (SELECT N'🚚 ' + d.DOMN_DESC FROM dbo.[D$RSCT] d WHERE d.VALU = ISNULL(@RespShipCostType, '001')) + N'*' + CHAR(10) 
-                                  END 
-                                + CASE -- حداقل سفارش کالا
-                                      WHEN ISNULL(@MinOrdr, 1) > 1 THEN
-                                          +N'*[ حداقل ثبت سفارش 👈 ' + CAST(@MinOrdr AS VARCHAR(3)) + N' ' + @UnitDescDnrm + N' 👉 می باشد. ]*'
-                                          + CHAR(10) + CHAR(10)
-                                      ELSE
-                                          N' ' + CHAR(10) 
-                                  END + 
+                                + CASE @ProdType
+                                       WHEN '002' THEN -- محصول فیزیکی باشه کالا باشه
+                                           CASE -- زمان تولید
+                                               WHEN ISNULL(@CrntNumbDnrm, 0) != 0 THEN -- اگر کالا موجود باشد
+                                                    N'🚚 *آماده ارسال*'
+                                               ELSE -- اگر کالا موجود نباشد
+                                                   CASE (@MakeDayDnrm + @MakeHourDnrm + @MakeMintDnrm)
+                                                        WHEN 0 THEN N''
+                                                        ELSE 
+                                                         N'🎛️ زمان تولید : ' 
+                                                         + CASE @MakeDayDnrm WHEN 0 THEN N'' ELSE CAST(@MakeDayDnrm AS VARCHAR(3)) + N' روز' END 
+                                                         + CASE @MakeHourDnrm WHEN 0 THEN N'' ELSE CAST(@MakeHourDnrm AS VARCHAR(3)) + N' ساعت' END 
+                                                         + CASE @MakeMintDnrm WHEN 0 THEN N'' ELSE CAST(@MakeMintDnrm AS VARCHAR(3)) + N' دقیقه' END 
+                                                   END 
+                                           END + CHAR(10)
+                                         + CASE -- زمان تحویل
+                                               WHEN @DelvDayDnrm != 0 OR @DelvHourDnrm != 0 or @DelvMintDnrm != 0 THEN 
+                                                    dbo.STR_COPY_U(N' ', 7) 
+                                                   + N'زمان تحویل : ' 
+                                                   + CASE @DelvDayDnrm WHEN 0 THEN N'' ELSE N'*' + CAST(@DelvDayDnrm AS VARCHAR(3)) + N'* روز ' END 
+                                                   + CASE @DelvHourDnrm WHEN 0 THEN N'' ELSE N'*' + CAST(@DelvHourDnrm AS VARCHAR(3)) + N'* ساعت ' END 
+                                                   + CASE @DelvMintDnrm WHEN 0 THEN N'' ELSE N'*' + CAST(@DelvMintDnrm AS VARCHAR(3)) + N'* دقیقه ' END + CHAR(10)
+                                               ELSE N''
+                                           END + 
+                                           -- 1399/09/20 * اضافه شدن حوزه تامین کننده و هزینه ارسال باربری
+                                         + CASE ISNULL(@ProdSuplLoctStat, '001')
+                                                WHEN '001' THEN N'' 
+                                                WHEN '002' THEN N'📌 حوزه تامین : *' + ISNULL(@ProdSuplLoctDesc, N'مشخص نیست') + N'  •  ' + 
+                                                (SELECT N'🚚 ' + d.DOMN_DESC FROM dbo.[D$RSCT] d WHERE d.VALU = ISNULL(@RespShipCostType, '001')) + N'*' + CHAR(10) 
+                                           END 
+                                         + CASE -- حداقل سفارش کالا
+                                               WHEN ISNULL(@MinOrdr, 1) > 1 THEN
+                                                   +N'*[ حداقل ثبت سفارش 👈 ' + CAST(@MinOrdr AS VARCHAR(3)) + N' ' + @UnitDescDnrm + N' 👉 می باشد. ]*'
+                                                   + CHAR(10) + CHAR(10)
+                                               ELSE
+                                                   N' ' + CHAR(10) 
+                                           END 
+                                       WHEN '001' THEN N''
+                                  END
                                 + N'قیمت مصرف کننده : '
                                 + CASE
                                       WHEN @RbpdCode IS NOT NULL THEN
