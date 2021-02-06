@@ -59,7 +59,8 @@ CREATE TABLE [dbo].[Order]
 [CRET_BY] [varchar] (250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [CRET_DATE] [datetime] NULL,
 [MDFY_BY] [varchar] (250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-[MDFY_DATE] [datetime] NULL
+[MDFY_DATE] [datetime] NULL,
+[SCDL_PTNT_DATE] [datetime] NULL
 ) ON [PRIMARY]
 GO
 SET QUOTED_IDENTIFIER ON
@@ -551,6 +552,8 @@ EXEC sp_addextendedproperty N'MS_Description', N'نحوه پرداخت
 درگاه پرداخت
 اگر مبلغ زیر 3 میلیون باشه کارت به کارت
 ولی اگر بیش از 3 میلیون باشد به درگاه پرداخت شرکت iNoti', 'SCHEMA', N'dbo', 'TABLE', N'Order', 'COLUMN', N'PYMT_MTOD'
+GO
+EXEC sp_addextendedproperty N'MS_Description', N'نوبت دهی', 'SCHEMA', N'dbo', 'TABLE', N'Order', 'COLUMN', N'SCDL_PTNT_DATE'
 GO
 EXEC sp_addextendedproperty N'MS_Description', N'نحوه آشنایی مشتری', 'SCHEMA', N'dbo', 'TABLE', N'Order', 'COLUMN', N'SERV_INTR_APBS_CODE'
 GO

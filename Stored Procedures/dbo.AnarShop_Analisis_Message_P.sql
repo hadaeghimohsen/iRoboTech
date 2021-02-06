@@ -10359,7 +10359,7 @@ BEGIN
                                   END + CHAR(10) + REPLACE(N'برند : *{0}*', N'{0}', @BrndTextDnrm) + N'     '
                                 + REPLACE(N'گروه : {0}', N'{0}', @GropTextDnrm) + CHAR(10) + CHAR(10)
                                 + N'*ویژگی های محصول*' + CHAR(10) 
-                                + (SELECT N'⏱️ *- ' + d.DOMN_DESC + N' -*' FROM dbo.[D$PROT] d WHERE d.VALU = ISNULL(@ProdLifeStat, '001')) + CHAR(10)
+                                + CASE @ProdType WHEN '002' THEN (SELECT N'⏱️ *- ' + d.DOMN_DESC + N' -*' FROM dbo.[D$PROT] d WHERE d.VALU = ISNULL(@ProdLifeStat, '001')) + CHAR(10) WHEN '001' THEN N'' end
                                 + REPLACE(N'{0}', N'{0}', ISNULL(@ProdFetr, N' ')) + CHAR(10)
                                 + CHAR(10) + N'📦 موجودی محصول : *'
                                 + CASE ISNULL(@ViewInvrStat, '002')
@@ -10414,7 +10414,7 @@ BEGIN
                                                ELSE
                                                    N' ' + CHAR(10) 
                                            END 
-                                       WHEN '001' THEN N''
+                                       WHEN '001' THEN N'' + CHAR(10)
                                   END
                                 + N'قیمت مصرف کننده : '
                                 + CASE

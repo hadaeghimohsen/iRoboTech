@@ -62,7 +62,8 @@ BEGIN
               @RespShipCostType VARCHAR(3),
               @AprxShipCostAmnt BIGINT,
               @CRNC_CALC_STAT VARCHAR(3),
-              @CRNC_EXPN_AMNT MONEY;
+              @CRNC_EXPN_AMNT MONEY,
+              @BAR_CODE VARCHAR(100);
 
       DECLARE @docHandle INT;	
       EXEC sp_xml_preparedocument @docHandle OUTPUT, @X;
@@ -76,7 +77,7 @@ BEGIN
              rp.GRNT_STAT_DNRM  ,rp.GRNT_NUMB_DNRM  ,rp.GRNT_TIME_DNRM  ,rp.GRNT_TYPE_DNRM  ,rp.GRNT_DESC_DNRM  ,
              rp.WRNT_STAT_DNRM  ,rp.WRNT_NUMB_DNRM  ,rp.WRNT_TIME_DNRM  ,rp.WRNT_TYPE_DNRM  ,rp.WRNT_DESC_DNRM  ,
              rp.WEGH_AMNT_DNRM  ,rp.NUMB_TYPE , rc.Qnty , rc.Tarf_Text, rc.Expn_Pric, rc.Buy_Pric, rp.PROD_LIFE_STAT, rp.PROD_SUPL_LOCT_STAT,
-             rp.PROD_SUPL_LOCT_DESC, rp.RESP_SHIP_COST_TYPE, rp.APRX_SHIP_COST_AMNT, rp.CRNC_CALC_STAT, rp.CRNC_EXPN_AMNT
+             rp.PROD_SUPL_LOCT_DESC, rp.RESP_SHIP_COST_TYPE, rp.APRX_SHIP_COST_AMNT, rp.CRNC_CALC_STAT, rp.CRNC_EXPN_AMNT, rp.BAR_CODE
       FROM dbo.Robot_Product rp, OPENXML(@docHandle, N'//Table')
       WITH (
         Rbid BIGINT './RBID',
@@ -100,7 +101,7 @@ BEGIN
          @GRNT_STAT_DNRM  ,@GRNT_NUMB_DNRM  ,@GRNT_TIME_DNRM  ,@GRNT_TYPE_DNRM  ,@GRNT_DESC_DNRM  ,
          @WRNT_STAT_DNRM  ,@WRNT_NUMB_DNRM  ,@WRNT_TIME_DNRM  ,@WRNT_TYPE_DNRM  ,@WRNT_DESC_DNRM  ,
          @WEGH_AMNT_DNRM  ,@NUMB_TYPE , @Qnty, @TARF_TEXT_NEW, @EXPN_PRIC_NEW, @BUY_PRIC_NEW, @ProdLifeStat, @ProdSuplLoctStat,
-         @ProdSuplLoctDesc, @RespShipCostType, @AprxShipCostAmnt, @CRNC_CALC_STAT, @CRNC_EXPN_AMNT ;
+         @ProdSuplLoctDesc, @RespShipCostType, @AprxShipCostAmnt, @CRNC_CALC_STAT, @CRNC_EXPN_AMNT, @BAR_CODE ;
       
       IF @@FETCH_STATUS <> 0
          GOTO L$EndLoopC$Products;
@@ -151,7 +152,8 @@ BEGIN
             @RESP_SHIP_COST_TYPE = @RespShipCostType,
             @APRX_SHIP_COST_AMNT = @AprxShipCostAmnt,
             @CRNC_CALC_STAT = @CRNC_CALC_STAT,
-            @CRNC_EXPN_AMNT = @CRNC_EXPN_AMNT; -- varchar(3) -- varchar(3)
+            @CRNC_EXPN_AMNT = @CRNC_EXPN_AMNT,
+            @BAR_CODE = @BAR_CODE; -- varchar(3) -- varchar(3)
       END 
       
       --PRINT @TARF_CODE + N' ' + CAST(@Qnty AS VARCHAR(10)) + N' ' + CAST(@CODE AS VARCHAR(30))

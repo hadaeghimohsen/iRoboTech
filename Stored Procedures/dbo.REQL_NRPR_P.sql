@@ -107,7 +107,8 @@ BEGIN
          @RESP_SHIP_COST_TYPE = '000',
          @APRX_SHIP_COST_AMNT = 0,
          @Crnc_Calc_Stat = '001',
-         @Crnc_Expn_Amnt = NULL; -- varchar(3)
+         @Crnc_Expn_Amnt = NULL,
+         @BAR_CODE = NULL; -- varchar(3)
       
       INSERT INTO dbo.Service_Robot_Seller_Product_Store ( SRSP_CODE ,CODE ,STOR_DATE ,NUMB ,MAKE_DATE ,EXPR_DATE )
       SELECT TOP 1 p.CODE, dbo.GNRT_NVID_U(), GETDATE(), @Qnty, GETDATE(), DATEADD(YEAR, 1, GETDATE())

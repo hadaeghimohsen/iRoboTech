@@ -51,8 +51,9 @@ CREATE PROCEDURE [dbo].[INS_RBPR_P]
     @PROD_SUPL_LOCT_DESC NVARCHAR(250),
     @RESP_SHIP_COST_TYPE VARCHAR(3),
     @APRX_SHIP_COST_AMNT BIGINT,
-    @Crnc_Calc_Stat VARCHAR(3),
-    @Crnc_Expn_Amnt MONEY
+    @CRNC_CALC_STAT VARCHAR(3),
+    @CRNC_EXPN_AMNT MONEY,
+    @BAR_CODE VARCHAR(100)
 AS
 BEGIN
     BEGIN TRY
@@ -199,7 +200,8 @@ BEGIN
                rp.RESP_SHIP_COST_TYPE = ISNULL(@RESP_SHIP_COST_TYPE, '001'),
                rp.APRX_SHIP_COST_AMNT = @APRX_SHIP_COST_AMNT,
                rp.CRNC_CALC_STAT = @Crnc_Calc_Stat,
-               rp.CRNC_EXPN_AMNT = @Crnc_Expn_Amnt
+               rp.CRNC_EXPN_AMNT = @Crnc_Expn_Amnt,
+               rp.BAR_CODE = @Bar_Code
           FROM dbo.Robot_Product rp
          WHERE rp.ROBO_RBID = @ROBO_RBID
            AND TARF_CODE = @TARF_CODE;        

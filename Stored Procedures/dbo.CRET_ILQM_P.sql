@@ -491,6 +491,21 @@ BEGIN
             -- مشتری تا زمانی که آدرس ارسال بسته خود را مشخص نکند اجازه پرداخت را ندارد   	      
    	      IF EXISTS(SELECT * FROM dbo.[Order] o WHERE o.CODE = @OrdrCode AND o.HOW_SHIP != '000')
    	      BEGIN
+	            -- اگر مشتری مشخص کرده باشد که با پیک یا باربری سفارش ارسال شود
+	            IF NOT EXISTS(SELECT * FROM dbo.[Order] o, dbo.Robot R WHERE R.RBID = O.SRBT_ROBO_RBID AND o.CODE = @OrdrCode AND ( ( o.HOW_SHIP = ( '002' ) AND O.DEBT_DNRM >= R.FREE_SHIP_INCT_AMNT ) OR ( o.HOW_SHIP = ( '003' ) AND O.DEBT_DNRM >= R.FREE_SHIP_OTCT_AMNT ) ) )
+	            BEGIN
+	               -- Next Step #. Payment Operation
+	               -- Static
+	               SET @X = (
+	                  SELECT dbo.STR_FRMT_U('./{0};costshipcart-{1}$del,lessckotcart#' , '*0*9*0#' + ',' + CAST(@OrdrCode AS NVARCHAR(50))) AS '@data',
+	                         @index AS '@order',
+	                         N'💸 هزینه ارسال' AS "text()"
+	                     FOR XML PATH('InlineKeyboardButton')
+	               );
+	               SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
+	               SET @index += 1;
+	            END 	            
+	            
 	            -- Next Step #. Payment Operation
 	            -- Static
 	            SET @X = (
@@ -542,6 +557,28 @@ BEGIN
 	      END
 	      ELSE IF @CmndText = 'lessinfoinvc'
 	      BEGIN
+	         -- Next Step #. Edit Invoice
+	         -- Static
+	         SET @X = (
+	            SELECT dbo.STR_FRMT_U('./{0};scdlptntcart-{1}$del,lessinfoinvc#' , '*0*9*1#' + ',' + CAST(@OrdrCode AS NVARCHAR(50))) AS '@data',
+	                   @index AS '@order',
+	                   N'📅 نوبت دهی' AS "text()"
+	               FOR XML PATH('InlineKeyboardButton')
+	         );
+	         SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
+	         SET @index += 1;	         
+	         
+	         -- Next Step #. Edit Invoice
+	         -- Static
+	         SET @X = (
+	            SELECT dbo.STR_FRMT_U('./{0};trancart2othr-{1}$del,lessinfoinvc#' , '*0*9*2#' + ',' + CAST(@OrdrCode AS NVARCHAR(50))) AS '@data',
+	                   @index AS '@order',
+	                   N'📤 انتقال فاکتور به مشتری دیگر' AS "text()"
+	               FOR XML PATH('InlineKeyboardButton')
+	         );
+	         SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
+	         SET @index += 1;	         
+	         
 	         -- Next Step #. Edit Invoice
 	         -- Static
 	         SET @X = (
@@ -878,7 +915,13 @@ BEGIN
 	   ELSE IF @CmndText IN ( 'lessckotcart', 'moreckotcart' )
 	   BEGIN
 	      -- اضافه کردن مدت زمان ده دقیقه به درخواست برای پرداخت
-	      UPDATE dbo.[Order] SET STRT_DATE = DATEADD(MINUTE, 10, STRT_DATE) WHERE CODE = @OrdrCode;
+	      UPDATE dbo.[Order] 	      
+	         SET STRT_DATE = DATEADD(MINUTE, 10, o.STRT_DATE) 
+	        FROM dbo.[Order] o, dbo.Robot r
+	       WHERE r.RBID = o.SRBT_ROBO_RBID
+	         AND CODE = @OrdrCode
+	         AND ABS(DATEDIFF(MINUTE, DATEADD(MINUTE, r.ORDR_EXPR_TIME, STRT_DATE), GETDATE())) < 10;
+	      
 	      IF EXISTS(SELECT * FROM dbo.[Order] WHERE CODE = @OrdrCode AND DEBT_DNRM > 0)
 	      BEGIN
 	         -- Next Step #. Payment
