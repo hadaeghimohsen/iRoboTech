@@ -219,7 +219,7 @@ BEGIN
 	        FROM dbo.[Order_State] os
 	       WHERE os.ORDR_CODE = @OrdrCode
 	         AND os.CONF_STAT = '002'
-	         AND os.AMNT_TYPE IN ('001', '005')
+	         AND os.AMNT_TYPE IN ('001', '005', '006')
 	      )  
 	   BEGIN
 	      L$ProductsBackToShelf:
@@ -257,7 +257,7 @@ BEGIN
 	              FROM dbo.[Order_State] os
 	             WHERE os.ORDR_CODE = o.CODE
 	               AND os.CONF_STAT = '002'
-	               AND os.AMNT_TYPE IN ('001', '005') 
+	               AND os.AMNT_TYPE IN ('001', '005', '006') 
             );
             
       -- اگر درخواستی وجود داشته باشد که منقضی شده باشد

@@ -99,11 +99,10 @@ BEGIN
 	SELECT @TrgtAmnt = MIN(T.Amnt)
 	  FROM (VALUES (@DebtAmnt), (@BlncWaltAmnt)) AS T(Amnt);
 	
-	-- بروزرسانی مبلغ کارت هیده به صورت موقت
-	INSERT INTO dbo.Wallet_Detail
-   (ORDR_CODE ,WLET_CODE ,CODE ,AMNT_TYPE ,AMNT ,AMNT_DATE ,AMNT_STAT ,CONF_STAT)
-   VALUES
-   (@OrdrCode, @WletCode, 0, @AmntType, @TrgtAmnt, GETDATE(), '002', '003');
+	-- بروزرسانی مبلغ کارت نقدی به صورت موقت
+	-- ثبت مبلغ برداشت از حساب نقدی
+	INSERT INTO dbo.Wallet_Detail (ORDR_CODE ,WLET_CODE ,CODE ,AMNT_TYPE ,AMNT ,AMNT_DATE ,AMNT_STAT ,CONF_STAT)
+   VALUES (@OrdrCode, @WletCode, 0, @AmntType, @TrgtAmnt, GETDATE(), '002', '003');
    
    -- بدست آوردن اطلاعات برداشت از حساب کیف پول
    SELECT @WldtCode = wd.CODE
@@ -130,10 +129,8 @@ BEGIN
 	END
    
    -- درج اطلاعات واریزی در جدول وضعیت سفارش
-   INSERT INTO dbo.Order_State
-   ( ORDR_CODE , CODE ,WLDT_CODE ,STAT_DATE ,STAT_DESC ,AMNT ,AMNT_TYPE ,RCPT_MTOD ,CONF_STAT, TXID, TXFE_PRCT, TXFE_CALC_AMNT )
-   VALUES 
-   ( @OrdrCode, 0, @WldtCode, GETDATE(), CASE @OrdrType WHEN '004' THEN N'کسر مبلغ کیف پول برای سفارش' WHEN '023' THEN N'کسر مبلغ کیف پول برای پرداخت هزینه ارسال سفارش' END , @TrgtAmnt, '001', '005', '002', @WldtCode, @TxfePrct, @TxfeCalcAmnt);
+   INSERT INTO dbo.Order_State ( ORDR_CODE , CODE ,WLDT_CODE ,STAT_DATE ,STAT_DESC ,AMNT ,AMNT_TYPE ,RCPT_MTOD ,CONF_STAT, TXID, TXFE_PRCT, TXFE_CALC_AMNT )
+   VALUES ( @OrdrCode, 0, @WldtCode, GETDATE(), CASE @OrdrType WHEN '004' THEN N'کسر مبلغ کیف پول برای سفارش' WHEN '023' THEN N'کسر مبلغ کیف پول برای پرداخت هزینه ارسال سفارش' END , @TrgtAmnt, '001', '005', '002', @WldtCode, @TxfePrct, @TxfeCalcAmnt);
    
    SET @XRet = (
        SELECT 'successful' AS '@rsltdesc',

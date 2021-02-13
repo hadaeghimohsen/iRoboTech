@@ -12,7 +12,7 @@ CREATE PROCEDURE [dbo].[SAVE_PYMT_P]
 	@X XML,
 	@xRet XML OUTPUT
 AS
-BEGIN
+BEGIN   
 	BEGIN TRY
 	BEGIN TRAN [T$SAVE_PYMT_P]
 	
@@ -268,7 +268,7 @@ BEGIN
 	   BEGIN
 	      -- اگر آخرین عملیات روی درخواست پرداخت کارت به کارت مشتری باشد باید ردیف آن را ذخیره کنیم
 	      IF LEN(@Txid) != 0
-	      BEGIN
+	      BEGIN	         
 	         -- درج ردیف وصولی در جدول وضعیت درخواست
 	         INSERT INTO dbo.Order_State
             (ORDR_CODE ,CODE ,STAT_DATE ,AMNT ,AMNT_TYPE ,
@@ -337,7 +337,7 @@ BEGIN
 	               FOR XML PATH('Robot')
 	         );
 	         EXEC dbo.SEND_MEOJ_P @X = @xTemp, @XRet = @xTemp OUTPUT;
-	      END
+	      END         
          
          -- کثر مبلغ کارمزد مشتری از پرداختی های فاکتور
          UPDATE os
@@ -513,7 +513,7 @@ BEGIN
 	            AND o.AMNT_TYPE = au.VALU
 	        FOR XML PATH('Message'), ROOT('Result')
 	      );
-	   END 
+	   END 	   
    END 
    ELSE IF @OrdrType = '013' /* درخواست افزایش اعتبار کیف پول */
    BEGIN
@@ -1237,31 +1237,31 @@ BEGIN
     END;
     
    -- اگر درخواست افزایش اعتبار مشتری ثبت کرده باشد باید درون کیف پول تغییرات را اعمال کنیم
-   IF EXISTS(
-       SELECT *
-         FROM dbo.[Order] o 
-        WHERE o.CODE = @OrdrCode
-          AND o.ORDR_TYPE = '015'                      
-    )
-    BEGIN
-      -- آیا مشتری دارای معرف میباشد یا خیر
-      SELECT @WletCode = w.CODE
-        FROM dbo.Service_Robot sr, dbo.Wallet w
-       WHERE sr.ROBO_RBID = @Rbid
-         AND sr.SERV_FILE_NO = w.SRBT_SERV_FILE_NO
-         AND sr.ROBO_RBID = w.SRBT_ROBO_RBID
-         AND sr.CHAT_ID = @ChatId
-         AND w.WLET_TYPE = '002'
-         AND w.CHAT_ID = sr.CHAT_ID;
+   --IF EXISTS(
+   --    SELECT *
+   --      FROM dbo.[Order] o 
+   --     WHERE o.CODE = @OrdrCode
+   --       AND o.ORDR_TYPE = '015'                      
+   -- )
+   -- BEGIN
+   --   -- آیا مشتری دارای معرف میباشد یا خیر
+   --   SELECT @WletCode = w.CODE
+   --     FROM dbo.Service_Robot sr, dbo.Wallet w
+   --    WHERE sr.ROBO_RBID = @Rbid
+   --      AND sr.SERV_FILE_NO = w.SRBT_SERV_FILE_NO
+   --      AND sr.ROBO_RBID = w.SRBT_ROBO_RBID
+   --      AND sr.CHAT_ID = @ChatId
+   --      AND w.WLET_TYPE = '002'
+   --      AND w.CHAT_ID = sr.CHAT_ID;
       
-      INSERT INTO dbo.Wallet_Detail
-      (ORDR_CODE ,WLET_CODE ,CODE ,AMNT_TYPE ,
-      AMNT ,AMNT_DATE ,AMNT_STAT ,CONF_STAT ,CONF_DATE ,CONF_DESC )
-      SELECT od.ORDR_CODE, @WletCode, 0, @AmntType, od.EXPN_PRIC, GETDATE(), '001' /* ورودی به کیف پول */, '002', GETDATE(), N'افزایش مبلغ نقدینگی کیف پول'
-        FROM dbo.Order_Detail od
-       WHERE od.ORDR_CODE = @OrdrCode
-         AND od.RQTP_CODE_DNRM = '020';         
-    END 
+   --   INSERT INTO dbo.Wallet_Detail
+   --   (ORDR_CODE ,WLET_CODE ,CODE ,AMNT_TYPE ,
+   --   AMNT ,AMNT_DATE ,AMNT_STAT ,CONF_STAT ,CONF_DATE ,CONF_DESC )
+   --   SELECT od.ORDR_CODE, @WletCode, 0, @AmntType, od.EXPN_PRIC, GETDATE(), '001' /* ورودی به کیف پول */, '002', GETDATE(), N'افزایش مبلغ نقدینگی کیف پول'
+   --     FROM dbo.Order_Detail od
+   --    WHERE od.ORDR_CODE = @OrdrCode
+   --      AND od.RQTP_CODE_DNRM = '020';         
+   -- END 
     
    -- اگر فروشگاه سیستم پورسانت دهی برای مشتریان خودش قرار داده باشد اینجا باید برای مشتریان پورسانت آن را لحاظ کنیم 
    IF EXISTS (

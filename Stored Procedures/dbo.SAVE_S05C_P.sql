@@ -213,7 +213,7 @@ BEGIN
       -- هر گونه ردیف در مورد تخفیف / واریزی / رسید پرداخت تایید نشده را حذف میکنیم
       DELETE dbo.Order_State
        WHERE ORDR_CODE = @OrdrCode
-         AND AMNT_TYPE NOT IN ('005' /* رسید های پرداخت نیاز به پاک شدن ندارند */);
+         AND AMNT_TYPE NOT IN ('005' /* رسید های پرداخت نیاز به پاک شدن ندارند */, '006' /* واریزی های حضوری */); 
  
       DELETE dbo.Wallet_Detail
        WHERE ORDR_CODE = @OrdrCode
@@ -561,7 +561,7 @@ BEGIN
       -- هر گونه ردیف در مورد تخفیف / واریزی / رسید پرداخت تایید نشده را حذف میکنیم
       DELETE dbo.Order_State
        WHERE ORDR_CODE = @OrdrCode
-         AND AMNT_TYPE NOT IN ('005' /* رسید های پرداخت نیاز به پاک شدن ندارند */); 
+         AND AMNT_TYPE NOT IN ('005' /* رسید های پرداخت نیاز به پاک شدن ندارند */, '006' /* واریزی های حضوری */); 
        
       DELETE dbo.Wallet_Detail
        WHERE ORDR_CODE = @OrdrCode
@@ -764,7 +764,7 @@ BEGIN
          -- هر گونه ردیف در مورد تخفیف / واریزی / رسید پرداخت تایید نشده را حذف میکنیم
          DELETE dbo.Order_State
           WHERE ORDR_CODE = @OrdrCode
-            AND AMNT_TYPE NOT IN ('005' /* رسید های پرداخت نیاز به پاک شدن ندارند */);
+            AND AMNT_TYPE NOT IN ('005' /* رسید های پرداخت نیاز به پاک شدن ندارند */, '006' /* واریزی های حضوری */); 
          
          DELETE dbo.Wallet_Detail
           WHERE ORDR_CODE = @OrdrCode
@@ -1332,7 +1332,7 @@ BEGIN
          -- هر گونه ردیف در مورد تخفیف / واریزی / رسید پرداخت تایید نشده را حذف میکنیم
          DELETE dbo.Order_State
           WHERE ORDR_CODE = @OrdrCode
-            AND AMNT_TYPE NOT IN ('005' /* رسید های پرداخت نیاز به پاک شدن ندارند */);
+            AND AMNT_TYPE NOT IN ('005' /* رسید های پرداخت نیاز به پاک شدن ندارند */, '006' /* واریزی های حضوری */); 
           
          DELETE dbo.Wallet_Detail
           WHERE ORDR_CODE = @OrdrCode
@@ -1841,7 +1841,7 @@ BEGIN
 	UPDATE o
 	   SET o.Expn_Amnt = (SELECT SUM(od.EXPN_PRIC * od.NUMB) FROM dbo.Order_Detail od WHERE od.ORDR_CODE = o.CODE)
 	      ,o.EXTR_PRCT = (SELECT SUM(od.EXTR_PRCT * od.NUMB) FROM dbo.Order_Detail od WHERE od.ORDR_CODE = o.CODE)
-	      ,o.PYMT_AMNT_DNRM = (SELECT SUM(os.AMNT) FROM dbo.Order_State os WHERE os.ORDR_CODE = o.code AND os.AMNT_TYPE IN ('001', '005') AND os.CONF_STAT = '002')
+	      ,o.PYMT_AMNT_DNRM = (SELECT SUM(os.AMNT) FROM dbo.Order_State os WHERE os.ORDR_CODE = o.code AND os.AMNT_TYPE IN ('001', '005', '006') AND os.CONF_STAT = '002')
 	      ,o.DSCN_AMNT_DNRM = (SELECT SUM(((od.EXPN_PRIC + od.EXTR_PRCT) * od.NUMB) * ISNULL(od.OFF_PRCT, 0) / 100 ) FROM dbo.Order_Detail od WHERE od.ORDR_CODE = o.CODE) + 
 	                          (SELECT ISNULL(SUM(os.AMNT), 0) FROM dbo.Order_State os WHERE os.ORDR_CODE = @OrdrCode AND os.AMNT_TYPE = '002' /* تخفیفات سفارش */)
 	      ,o.AMNT_TYPE = @AmntType
