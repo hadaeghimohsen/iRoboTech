@@ -3634,6 +3634,15 @@ BEGIN
                                    + CAST(CAST(GETDATE() AS TIME(0)) AS VARCHAR(5));
             END;
         END;
+        -- UpMenu  ::= 👤 پروفایل شما
+        -- SubMenu ::= 🙂 بازیابی اطلاعات
+        -- UssdCod ::= *1*0#
+        -- UssdCod ::= *1*0*6#
+        ELSE IF @UssdCode = '*1*0#' AND @ChildUssdCode = '*1*0*6#'
+        BEGIN
+           SET @MenuText = 'getexistsuser';
+           GOTO L$GetExistsUser;
+        END 
         -- UpMenu  ::= 👥 مجموعه فروش
         -- SubMenu ::= 🔢 تعداد نفرات
         -- UssdCod ::= *1*10#
@@ -5469,6 +5478,45 @@ BEGIN
                    @MenuText = N'No Text';                   
             GOTO L$RegUser;
         END;
+        ELSE IF @MenuText IN ('getexistsuser')
+        BEGIN
+           L$GetExistsUser:
+           -- در این قسمت اگر اطلاعات مشتری درون پایگاه داده سیستم آرتا ثبت شده باشد اطلاعات را آز انجا بیرون می آوریم
+           IF EXISTS(SELECT * FROM iScsc.dbo.Fighter WHERE CHAT_ID_DNRM = @ChatID)
+           BEGIN
+               SET @XTemp = (
+                   SELECT FRST_NAME_DNRM AS '@frstname',
+                          LAST_NAME_DNRM AS '@lastname',
+                          CELL_PHON_DNRM AS '@cellphon',
+                          NATL_CODE_DNRM AS '@natlcode',
+                          5 AS '@subsys',
+                          CHAT_ID_DNRM AS '@chatid',
+                          @Rbid AS '@rbid',
+                          '010' AS '@actntype',
+                          'reguser' AS '@cmndtext'                               
+                     FROM iScsc.dbo.Fighter
+                    WHERE CHAT_ID_DNRM = @ChatID                          
+                      FOR XML PATH('Service')               
+               );               
+               EXEC dbo.SAVE_SRBT_P @X = @XTemp, @XRet = @XTemp OUTPUT;
+               
+               SET @Message = (
+                   SELECT N'💾 اطلاعات با موفقیت ثبت شده' + CHAR(10) + 
+                          N'📲 کد دستگاه شما : *' + CAST(@ChatId AS NVARCHAR(30)) + N'*' + CHAR(10) + 
+                          N'نام : *' + sr.REAL_FRST_NAME + N'*' + CHAR(10) + 
+                          N'فامیل : *' + sr.REAL_LAST_NAME + N'*' + CHAR(10) + 
+                          N'شماره موبایل : *' + sr.OTHR_CELL_PHON + N'*' + CHAR(10) + 
+                          N'کد ملی : *' + sr.NATL_CODE + N'*' 
+                     FROM dbo.Service_Robot sr
+                    WHERE sr.ROBO_RBID = @Rbid
+                      AND sr.CHAT_ID = @ChatId
+               );
+           END 
+           ELSE
+           BEGIN
+              SET @Message = N'⛔ کاربر گرامی اطلاعات شما درون سیستم اصلی یافت نشد';
+           END 
+        END 
         ELSE IF @MenuText = 'regsstrtchck'
         BEGIN
            IF NOT EXISTS
@@ -10481,6 +10529,11 @@ BEGIN
                                           CHAR(10)
                                   END + N'💰 *' + REPLACE(CONVERT(NVARCHAR, CONVERT(MONEY, @Amnt), 1), '.00', '')
                                 + N' ' + @AmntTypeDesc + N'*' + CHAR(10) + CHAR(10)
+                                + CASE 
+                                    WHEN EXISTS(SELECT * FROM dbo.Service_Robot_Seller_Partner p WHERE p.SRBT_ROBO_RBID = @Rbid AND p.CHAT_ID = @ChatID AND p.TARF_CODE_DNRM = @ParamText AND p.STAT = '002') THEN 
+                                         N'😉 قیمت همکار : *' + (SELECT REPLACE(CONVERT(NVARCHAR, CONVERT(MONEY, p.EXPN_PRIC), 1), '.00', '') FROM dbo.Service_Robot_Seller_Partner p WHERE p.SRBT_ROBO_RBID = @Rbid AND p.CHAT_ID = @ChatID AND p.TARF_CODE_DNRM = @ParamText AND p.STAT = '002') + N' ' + @AmntTypeDesc + N'*' + CHAR(10) + CHAR(10)
+                                    ELSE N''
+                                  END 
                                 + CASE -- نمایش تعداد فروخته شده از همین کالا
                                       WHEN ISNULL(@SaleContDnrm, 0) != 0 THEN
                                            N'🛍️ ' + REPLACE(N'*{0}*', N'{0}', @SaleContDnrm)

@@ -63,7 +63,10 @@ BEGIN
          AND i.CARD_NUMB = a.CARD_NUMB
          AND i.ACNT_TYPE = a.ACNT_TYPE
          AND i.ORDR_TYPE = a.ORDR_TYPE
-         AND srg.GROP_GPID IN (131 /* گروه مدیریان فروشگاه */)
+         AND (
+               i.ROBO_RBID = 401 AND srg.GROP_GPID IN (131 /* گروه مدیریان فروشگاه */) OR 
+               i.ROBO_RBID = 391 AND srg.GROP_GPID IN (122 /* گروه مدیریان باشگاه */) 
+             )
          AND srg.STAT = '002'
    END 
    

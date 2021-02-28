@@ -2125,6 +2125,108 @@ BEGIN
             DEALLOCATE [C$SndMsg16PJob];
          END
 	   END
+	   ELSE IF @Oprt = 'sendinvoice' -- ارسال فاکتور برای مشتری
+	   BEGIN
+         INSERT INTO dbo.[Order](CODE, SRBT_SERV_FILE_NO ,SRBT_ROBO_RBID ,ORDR_TYPE ,STRT_DATE ,ORDR_STAT)
+         SELECT dbo.GNRT_NVID_U(), sr.SERV_FILE_NO, sr.ROBO_RBID, '012', GETDATE(), '001'
+           FROM dbo.Service_Robot sr
+          WHERE sr.ROBO_RBID = @Rbid
+            AND EXISTS(
+                SELECT *
+                  FROM dbo.Personal_Robot_Job pj
+                 WHERE pj.PRBT_ROBO_RBID = @Rbid
+                   AND pj.CHAT_ID = sr.CHAT_ID
+                   AND pj.JOB_CODE = 36
+                   AND pj.STAT = '002'
+            );
+	      
+	      SET @XMessage = (
+	          SELECT r.TKON_CODE AS '@token',
+	                 '*0*2#' AS 'Message/@ussd',
+	                 @Chatid AS 'Message/@chatid',
+	                 @OrdrCode AS 'Message/Text/@ordrcode',
+	                 'show' 
+	            FROM dbo.Robot r
+	           WHERE r.RBID = @Rbid
+	             FOR XML PATH('Robot')
+	      );
+	      EXEC dbo.AnarShop_Analisis_Message_P @X = @XMessage, @XResult = @XRet OUTPUT;	      
+	      
+         INSERT INTO dbo.Order_Detail
+         (ORDR_CODE ,ELMN_TYPE ,ORDR_CMNT , ORDR_DESC, INLN_KEYB_DNRM)
+         SELECT o.CODE, '001', N'ارسال فاکتور فروش',
+         (
+            SELECT CAST(@XRet.query('//Message').value('.', 'NVARCHAR(MAX)') AS XML).query('InlineKeyboardMarkup').value('(InlineKeyboardMarkup/@caption)[1]', 'NVARCHAR(MAX)')
+         ),
+         @XRet
+         FROM dbo.[Order] o
+        WHERE o.ORDR_TYPE = '012' -- درخواست های اعلام ها
+          AND o.ORDR_STAT = '001'
+          AND o.ORDR_CODE IS NULL;
+          
+         -- 1399/05/05
+         -- آزاد کردن درخواست اطلاع رسانی به مشتری جهت افزایش موجودی کالا
+         BEGIN/* آماده سازی ارسال پیام به مخاطبین */
+            DECLARE C$SndMsg17PJob CURSOR FOR
+               SELECT o.CODE, o.ORDR_TYPE
+                 FROM dbo.[Order] o
+                WHERE o.SRBT_ROBO_RBID = @Rbid
+                  AND o.ORDR_STAT IN ( '001' )
+                  AND o.ORDR_TYPE IN ('012' /* درخواست اعلام ها */)
+                  AND o.ORDR_CODE IS NULL;
+      	   
+            OPEN [C$SndMsg17PJob];
+            L$Loop_C$SndMsg17PJob:
+            FETCH [C$SndMsg17PJob] INTO @TOrdrCode, @TOrdrType;
+      	   
+            IF @@FETCH_STATUS <> 0
+               GOTO L$EndLoop_C$SndMsg17PJob;
+      	      
+            UPDATE dbo.[Order]
+               SET ORDR_STAT = '002'
+             WHERE CODE = @TOrdrCode;            
+            
+            IF NOT EXISTS ( SELECT * FROM dbo.Personal_Robot_Job_Order WHERE ORDR_CODE = @TOrdrCode)
+            BEGIN 
+               SET @TDirPrjbCode = NULL;
+               -- اگر درخواست نوع اعلام باشد باید به خوده مشتری مستقیما پیام داده شود
+               IF @TOrdrType IN ( '012' )
+               BEGIN
+                  SELECT @TDirPrjbCode = a.CODE
+                    FROM dbo.Personal_Robot_Job a, dbo.Job b, dbo.[Order] o
+                   WHERE a.PRBT_ROBO_RBID = @Rbid
+                     AND a.JOB_CODE = b.CODE
+                     AND b.ORDR_TYPE = @TOrdrType
+                     AND o.CODE = @TOrdrCode
+                     AND a.PRBT_SERV_FILE_NO = o.SRBT_SERV_FILE_NO
+               END 
+               
+               SELECT  @XMessage = ( 
+                  SELECT @TOrdrCode AS '@code' ,
+                         @Rbid AS '@roborbid' ,
+                         @TOrdrType '@type',
+                         @TDirPrjbCode '@dirprjbcode'
+                 FOR XML PATH('Order'), ROOT('Process')
+               );
+               EXEC Send_Order_To_Personal_Robot_Job @XMessage;
+            END 
+            ELSE
+            BEGIN
+               UPDATE dbo.Personal_Robot_Job_Order
+                  SET ORDR_STAT = '001'
+                WHERE ORDR_CODE = @TOrdrCode;
+            END 
+            
+            UPDATE dbo.[Order]
+               SET ORDR_STAT = '004'
+             WHERE CODE = @TOrdrCode;
+             
+            GOTO L$Loop_C$SndMsg17PJob;
+            L$EndLoop_C$SndMsg17PJob:
+            CLOSE [C$SndMsg17PJob];
+            DEALLOCATE [C$SndMsg17PJob];
+         END
+	   END 
 	END 
 	ELSE IF @OrdrType = '026' -- پیام های تبلیغاتی
 	BEGIN

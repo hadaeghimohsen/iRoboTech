@@ -59,7 +59,8 @@ CREATE TABLE [dbo].[Robot]
 [CRNC_AMNT_DNRM] [bigint] NULL,
 [CRNC_AUTO_UPDT_STAT] [varchar] (3) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [CRNC_CYCL_AUTO_UPDT] [int] NULL,
-[CRNC_HOW_UPDT_STAT] [varchar] (3) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
+[CRNC_HOW_UPDT_STAT] [varchar] (3) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[MAX_CARD_TO_CARD_AMNT] [bigint] NULL
 ) ON [PRIMARY]
 GO
 SET QUOTED_IDENTIFIER ON
@@ -298,6 +299,8 @@ EXEC sp_addextendedproperty N'MS_Description', N'میزان سبد خرید بر
 GO
 EXEC sp_addextendedproperty N'MS_Description', N'Connection string local server
 این گزینه برای نرم افزار های حسابداری هست که به صورت محلی کار میکنن', 'SCHEMA', N'dbo', 'TABLE', N'Robot', 'COLUMN', N'LOCL_SRVR_CONN_STRN'
+GO
+EXEC sp_addextendedproperty N'MS_Description', N'حداکثر سقف کارت به کارت کردن', 'SCHEMA', N'dbo', 'TABLE', N'Robot', 'COLUMN', N'MAX_CARD_TO_CARD_AMNT'
 GO
 EXEC sp_addextendedproperty N'MS_Description', N'حداقل مبلغ برداشت وجه پورسانت', 'SCHEMA', N'dbo', 'TABLE', N'Robot', 'COLUMN', N'MIN_WITH_DRAW'
 GO

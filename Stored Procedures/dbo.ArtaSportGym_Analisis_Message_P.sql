@@ -103,7 +103,7 @@ BEGIN
     BEGIN
       BEGIN TRY
          DECLARE C$Items CURSOR FOR
-            SELECT * FROM dbo.SplitString(@MenuText, '*');
+            SELECT Item FROM dbo.SplitString(@MenuText, '*');
          SET @Index = 0;
          OPEN [C$Items];
          L$FetchC$Item_DATE:
@@ -400,11 +400,11 @@ BEGIN
     BEGIN
       DECLARE @MtodDesc NVARCHAR(250)
              ,@CochName NVARCHAR(250)
-             ,@NumbAttn INT
+             ,@NumbAttn NVARCHAR(250)
              ,@CtgyDesc NVARCHAR(250);
              
       DECLARE C$Items CURSOR FOR
-         SELECT * FROM dbo.SplitString(@MenuText, '*');
+         SELECT Item FROM dbo.SplitString(@MenuText, '#');
       SET @Index = 0;
       OPEN [C$Items];
       L$FetchC$Item_DATA1:
@@ -418,7 +418,7 @@ BEGIN
       ELSE IF @Index = 1
          SET @CochName = @Item;
       ELSE IF @Index = 2
-         SET @NumbAttn = CAST(@Item AS INT);
+         SET @NumbAttn = @Item;
       ELSE IF @Index = 3
          SET @CtgyDesc = @Item;
       
@@ -439,8 +439,8 @@ BEGIN
                                WHERE cb.MTOD_CODE = m.CODE
                                  AND cb.NATL_CODE IS NOT NULL
                                  and (
-                                       cb.NUMB_OF_ATTN_MONT = @NumbAttn OR
-                                       cb.CTGY_DESC like N'%' + ISNULL(@CtgyDesc, N'%') + N'%'
+                                       ( ISNULL(@NumbAttn, '') != '' OR cb.NUMB_OF_ATTN_MONT = @NumbAttn ) OR
+                                       ( ISNULL(@CtgyDesc, '') != '' OR cb.CTGY_DESC like N'%' + ISNULL(@CtgyDesc, N'%') + N'%' )
                                      )                                      
                                FOR XML PATH('')
                            ) 
@@ -462,6 +462,17 @@ BEGIN
         ORDER BY m.MTOD_DESC
              FOR XML PATH('')
       ) + CHAR(10) + N'⏰ '+ iRoboTech.dbo.GET_MTOS_U(GETDATE()) + N' ' + CAST(CAST(GETDATE() AS TIME(0)) AS VARCHAR(5));
+      
+      IF @Message IS NULL
+      BEGIN
+         SET @Message = 
+            N'😊 کاربر گرامی لطفا اطلاعات 🔍 جستجو خود را بر اساس ✏️ قالب زیر ارسال کنید با تشکر' + CHAR(10) + CHAR(10) + 
+            N'✏️ قالب ارسالی از سمت شما : ' + CHAR(10) +
+            N'*عنوان گروه*' + N' # ' + N'*نام سرپرست*' + N' # ' + N'*تعداد جلسات*' + N' # ' + N'*عنوان زیر گروه*' + CHAR(10) + CHAR(10) + 
+            N'👈 مثال :' + CHAR(10) + 
+            N'*بدنسازی*' + N' # ' + N'*روح الله قیصری*' + N' # ' + N'*12*' + N' # ' + N'*جلسه*'
+         ;
+      END 
     END
     -- تعداد آمار دعوتی من
     ELSE IF @UssdCode = '*0#' AND @ChildUssdCode = '*0*5#'
@@ -596,7 +607,7 @@ BEGIN
          DECLARE @NatlCode NVARCHAR(10);
 
          DECLARE C$Items CURSOR FOR
-            SELECT * FROM dbo.SplitString(@MenuText, '*');
+            SELECT Item FROM dbo.SplitString(@MenuText, '*');
          SET @Index = 0;
          OPEN [C$Items];
          L$FetchC$Item:
@@ -2834,25 +2845,98 @@ BEGIN
       (@UssdCode = '*4*6*1#' AND @ChildUssdCode = '*4*6*1*0#')
     )
     BEGIN      
-      SET @XTemp = (
-         SELECT @Rbid AS '@rbid'
-               ,12 AS '@subsys'
-               ,(
-                  SELECT CASE @UssdCode
-                           WHEN '*4*6*0#' THEN '013'
-                           when '*4*6*1#' THEN '014'
-                         END AS '@type'
-                        ,'001' AS '@mainactncode'
-                  FOR XML PATH('Credit'), TYPE
-               )
-        FOR XML PATH('Robot')
-      );
+      --SET @XTemp = (
+      --   SELECT @Rbid AS '@rbid'
+      --         ,12 AS '@subsys'
+      --         ,(
+      --            SELECT CASE @UssdCode
+      --                     WHEN '*4*6*0#' THEN '013'
+      --                     when '*4*6*1#' THEN '014'
+      --                   END AS '@type'
+      --                  ,'001' AS '@mainactncode'
+      --            FOR XML PATH('Credit'), TYPE
+      --         )
+      --  FOR XML PATH('Robot')
+      --);
       
-      EXEC dbo.MNGR_CRDT_P @X = @XTemp, @xRet = @XTemp OUTPUT;
+      --EXEC dbo.MNGR_CRDT_P @X = @XTemp, @xRet = @XTemp OUTPUT;
       
-      SELECT @Message = @XTemp.query('//Message').value('.', 'NVARCHAR(MAX)'); 
+      --SELECT @Message = @XTemp.query('//Message').value('.', 'NVARCHAR(MAX)'); 
+      SET @Message
+          = N'*موجودی کیف پول شما*' + CHAR(10) + CHAR(10)
+            + ISNULL(
+              (
+                  SELECT N'👈 *' + wt.DOMN_DESC + N'*' + CHAR(10) + CASE w.WLET_TYPE
+                                                                        WHEN '001' THEN
+                                                                            N'💳'
+                                                                        WHEN '002' THEN
+                                                                            N'💵'
+                                                                    END + N' [ موجودی حساب ] *'
+                         + REPLACE(CONVERT(NVARCHAR, CONVERT(MONEY, ISNULL(w.AMNT_DNRM, 0)), 1), '.00', '')
+                         + N'* ' + @AmntTypeDesc + CHAR(10) + N'🔵 [ آخرین واریزی ] '
+                         + CASE ISNULL(w.LAST_IN_AMNT_DNRM, 0)
+                               WHEN 0 THEN
+                                   N' _نداشته اید_ '
+                               ELSE
+                                   N'💵 *'
+                                   + REPLACE(CONVERT(NVARCHAR, CONVERT(MONEY, w.LAST_IN_AMNT_DNRM), 1), '.00', '')
+                                   + N'* ' + @AmntTypeDesc + N' 📅 ' + dbo.GET_MTOS_U(w.LAST_IN_DATE_DNRM) + N''
+                           END + CHAR(10) + N'🔴 [ آخرین برداشتی ] '
+                         + CASE ISNULL(w.LAST_OUT_AMNT_DNRM, 0)
+                               WHEN 0 THEN
+                                   N' _نداشته اید_ '
+                               ELSE
+                                   N'💵 *'
+                                   + REPLACE(
+                                                CONVERT(NVARCHAR, CONVERT(MONEY, w.LAST_OUT_AMNT_DNRM), 1),
+                                                '.00',
+                                                ''
+                                            ) + N'* ' + @AmntTypeDesc + N' 📅 '
+                                   + dbo.GET_MTOS_U(w.LAST_OUT_DATE_DNRM) + N''
+                           END + CHAR(10) + CHAR(10)
+                  --CASE ISNULL(r.MIN_WITH_DRAW, 0) 
+                  --     WHEN 0 THEN /* فروشگاه مبلغ پرداخت نقدی ندارد ولی اعضا میتواند پول اعتبارات خود را باهم خرید و فروش کنند */ N'🙂 مشتری عزیز 💎 _مبلغ اعتبار شما_ *قابلیت نقد شوندگی* برای 🏢 *فروشگاه ندارد* ، ولی شما می توانید 💎 *مبلغ اعتبار* خود را یا دیگر 👥 *اعضا* در میان بگذارید که اگر 🙋 *متقاضی* _خواهان اعتبار شما_ بود پول به صورت 💳 *کارت به کارت* پرداخت کرده و اعتبار خود را به دیگری واگذار کنید و شما به پول نقد دست یابید.'
+                  --     ELSE /* فروشگاه قابلیت نقدشوندگی را دارد و همچنین می توانید اعتبار خود را به دیگر اعضا بفروشید، برای فروشگاه حداقل مبلغ برداشت اهمیت زیادی دارد */ N'😊 مشتری عزیز برای 💰 *برداشت مبلغ* خود می توانید از طریق 🏢 *فروشگاه* یا 👥 *مشتریان فروشگاه* استفاده کنید، فقط برای _فروشگاه مبلغ حداقل برداشت_ *' + REPLACE(CONVERT(NVARCHAR, CONVERT(MONEY, r.MIN_WITH_DRAW), 1), '.00', '') + N'* ' + @AmntTypeDesc + N' میباشد که ممکن است 💸 *درخواست انتقال 48 ساعت* طول بینجامد ولی، 💳 *پرداخت بین اعضا 👥 * درصورتی که 🙋🏻 متقاضی باشد که به 💎 *اعتبار کیف پول شما* نیاز داشته باشد به صورت *انی* به 💳 _حساب شما_ *واریز* میگردد.'
+                  --END
+                  FROM dbo.Wallet w,
+                       dbo.Service_Robot sr,
+                       dbo.Robot r,
+                       dbo.[D$WLTP] wt
+                  WHERE r.RBID = sr.ROBO_RBID
+                        AND sr.SERV_FILE_NO = w.SRBT_SERV_FILE_NO
+                        AND sr.ROBO_RBID = w.SRBT_ROBO_RBID
+                        AND r.RBID = @Rbid
+                        AND sr.CHAT_ID = @ChatID
+                        AND w.WLET_TYPE = wt.VALU
+                  ORDER BY w.WLET_TYPE
+                  FOR XML PATH('')
+              ),
+              N''
+              );
+            --+
+            --(
+            --    SELECT /*CASE ISNULL(r.MIN_WITH_DRAW, 0) 
+            --         WHEN 0 THEN /* فروشگاه مبلغ پرداخت نقدی ندارد ولی اعضا میتواند پول اعتبارات خود را باهم خرید و فروش کنند */ 
+            --              /*N'🙂 مشتری عزیز 💎 _مبلغ اعتبار شما_ *قابلیت نقد شوندگی* برای 🏢 *فروشگاه ندارد* ، ولی شما می توانید 💎 *مبلغ اعتبار* خود را یا دیگر 👥 *اعضا* در میان بگذارید که اگر 🙋 *متقاضی* _خواهان اعتبار شما_ بود پول به صورت 💳 *کارت به کارت* پرداخت کرده و اعتبار خود را به دیگری واگذار کنید و شما به پول نقد دست یابید.'*/
+            --              N'مبلغ کیف پول *اعتباری* تنها جهت 🛒 *خرید* از فروشگاه بوده و *قابل برداشت* به صورت *پول نقد* نمیباشد؛ در صورت تمایل میتوانید آن را در میان اعضای فروشگاه به فروش بگذارید.' + CHAR(10) +
+            --              N'مبلغ کیف پول نقدینگی قابل برداشت میباشد که فرایند انتقال وجه حدود 48 ساعت به طول می انجامد؛ در صورت تمایل به برداشت وجه در زمان کمتر، میتوانید آن را در میان اعضای فروشگاه به فروش بگذارید.'                                
+            --         ELSE /* فروشگاه قابلیت نقدشوندگی را دارد و همچنین می توانید اعتبار خود را به دیگر اعضا بفروشید، برای فروشگاه حداقل مبلغ برداشت اهمیت زیادی دارد */ 
+            --              /*N'😊 مشتری عزیز برای 💰 *برداشت مبلغ* خود می توانید از طریق 🏢 *فروشگاه* یا 👥 *مشتریان فروشگاه* استفاده کنید، فقط برای _فروشگاه مبلغ حداقل برداشت_ *' + REPLACE(CONVERT(NVARCHAR, CONVERT(MONEY, r.MIN_WITH_DRAW), 1), '.00', '') + N'* ' + @AmntTypeDesc + N' میباشد که ممکن است 💸 *درخواست انتقال 48 ساعت* طول بینجامد ولی، 💳 *پرداخت بین اعضا 👥 * درصورتی که 🙋🏻 متقاضی باشد که به 💎 *اعتبار کیف پول شما* نیاز داشته باشد به صورت *انی* به 💳 _حساب شما_ *واریز* میگردد.'*/
+                          
+            --    END*/
+            --        N'💳 مبلغ کیف پول *اعتباری* تنها جهت 🛒 *خرید* از فروشگاه بوده و *قابل برداشت* به صورت *مستقیم نمیباشد* ؛ در صورت تمایل میتوانید آن را در میان اعضای فروشگاه به *فروش* بگذارید.'
+            --        + CHAR(10) + CHAR(10)
+            --        + N'💵 مبلغ کیف پول *نقدینگی قابل برداشت میباشد* که فرایند انتقال وجه حدود *48 ساعت* به طول می انجامد؛ در صورت تمایل به برداشت وجه در زمان کمتر، میتوانید آن را در میان اعضای فروشگاه به *فروش* بگذارید.'
+            --        + CHAR(10) + N'⚠️ *حداقل* مبلغ قابل برداشت از فروشگاه *'
+            --        + REPLACE(CONVERT(NVARCHAR, CONVERT(MONEY, r.MIN_WITH_DRAW), 1), '.00', '') + N' '
+            --        + @AmntTypeDesc + N'* میباشد'
+            --    FROM dbo.Robot r
+            --    WHERE r.RBID = @Rbid
+            --    FOR XML PATH('')
+            --) + CHAR(10) + N'⏰ ' + dbo.GET_MTOS_U(GETDATE()) + N' '
+            --+ CAST(CAST(GETDATE() AS TIME(0)) AS VARCHAR(5));
               
-      SELECT @Message += CHAR(10) + CHAR(10) + N'⏰ '+ iScsc.dbo.GET_MTOS_U(GETDATE()) + N' ' + CAST(CAST(GETDATE() AS TIME(0)) AS VARCHAR(5));
+      SELECT @Message += N'⏰ '+ iScsc.dbo.GET_MTOS_U(GETDATE()) + N' ' + CAST(CAST(GETDATE() AS TIME(0)) AS VARCHAR(5));
       
       IF @Message IS NULL
       BEGIN
@@ -3084,14 +3168,39 @@ BEGIN
                 @MenuText AS '@input',
                 0 AS '@ordrcode'
        FOR XML PATH('Action'), ROOT('Cart')
-      );      
-      
+      );
       EXEC dbo.SAVE_EXTO_P @X = @XTemp, @xRet = @XTemp OUTPUT; -- xml
+
+      -- بدست آوردن اینکه آیا عملیات به درستی انجام شده یا خیر
+      SELECT @OrdrCode = @XTemp.query('//Message').value('(Message/@ordrcode)[1]', 'BIGINT');
       
       --SET @Message = N'محصول مورد نظر شما از سبد خرید حذف گردید';
       SELECT @Message = @XTemp.query('//Message').value('.', 'NVARCHAR(MAX)'); 
               
       SELECT @Message += CHAR(10) + CHAR(10) + N'⏰ '+ iRoboTech.dbo.GET_MTOS_U(GETDATE()) + N' ' + CAST(CAST(GETDATE() AS TIME(0)) AS VARCHAR(5));
+            
+      -- 1399/12/07 * اضافه کردن منوی مربوط به فاکتور فروش
+      -- اضافه کردن منوهای اولیه مربوط به فاکتور فروش مشتری         
+      SET @XTemp =
+      (
+          SELECT @Rbid AS '@rbid',
+                 @ChatID AS '@chatid',
+                 @UssdCode AS '@ussdcode',
+                 'lesspaycart' AS '@cmndtext',
+                 @OrdrCode AS '@ordrcode'
+          FOR XML PATH('RequestInLineQuery')
+      );
+      EXEC dbo.CRET_ILQM_P @X = @XTemp,           -- xml
+                           @XRet = @XTemp OUTPUT; -- xml
+      SET @XTemp =
+      (
+          SELECT '1' AS '@order',
+                 @Message AS '@caption',
+                 @XTemp
+          FOR XML PATH('InlineKeyboardMarkup')
+      );
+      
+      SET @Message = CONVERT(NVARCHAR(MAX), @XTemp);
       
       IF @Message IS NULL
       BEGIN
@@ -3165,10 +3274,36 @@ BEGIN
       
       EXEC dbo.SAVE_EXTO_P @X = @XTemp, @xRet = @XTemp OUTPUT; -- xml
       
+            -- بدست آوردن اینکه آیا عملیات به درستی انجام شده یا خیر
+      SELECT @OrdrCode = @XTemp.query('//Message').value('(Message/@ordrcode)[1]', 'BIGINT');
+      
       --SET @Message = N'محصول مورد نظر شما از سبد خرید حذف گردید';
       SELECT @Message = @XTemp.query('//Message').value('.', 'NVARCHAR(MAX)'); 
               
       SELECT @Message += CHAR(10) + CHAR(10) + N'⏰ '+ iRoboTech.dbo.GET_MTOS_U(GETDATE()) + N' ' + CAST(CAST(GETDATE() AS TIME(0)) AS VARCHAR(5));
+            
+      -- 1399/12/07 * اضافه کردن منوی مربوط به فاکتور فروش
+      -- اضافه کردن منوهای اولیه مربوط به فاکتور فروش مشتری         
+      SET @XTemp =
+      (
+          SELECT @Rbid AS '@rbid',
+                 @ChatID AS '@chatid',
+                 @UssdCode AS '@ussdcode',
+                 'lesspaycart' AS '@cmndtext',
+                 @OrdrCode AS '@ordrcode'
+          FOR XML PATH('RequestInLineQuery')
+      );
+      EXEC dbo.CRET_ILQM_P @X = @XTemp,           -- xml
+                           @XRet = @XTemp OUTPUT; -- xml
+      SET @XTemp =
+      (
+          SELECT '1' AS '@order',
+                 @Message AS '@caption',
+                 @XTemp
+          FOR XML PATH('InlineKeyboardMarkup')
+      );
+      
+      SET @Message = CONVERT(NVARCHAR(MAX), @XTemp);
       
       IF @Message IS NULL
       BEGIN
@@ -3608,7 +3743,7 @@ BEGIN
               @LastNamr NVARCHAR(250);
               
       DECLARE C$Items CURSOR FOR
-         SELECT * FROM dbo.SplitString(@MenuText, '#');
+         SELECT Item FROM dbo.SplitString(@MenuText, '#');
       SET @Index = 0;
       OPEN [C$Items];
       L$FetchC$Item1:
@@ -3754,7 +3889,7 @@ BEGIN
              );
              
       SELECT @XTemp = (
-         SELECT '@/DefaultGateway:Scsc:MAIN_PAGE_F;Attn-' + f.FNGR_PRNT_DNRM + N',' + CAST(m.RWNO AS NVARCHAR(5))   AS '@data'
+         SELECT '@/DefaultGateway:Scsc:MAIN_PAGE_F;Attn-' + f.FNGR_PRNT_DNRM + N',' + CAST(m.RWNO AS NVARCHAR(5)) + '$#'  AS '@data'
                ,ROW_NUMBER() OVER ( ORDER BY m.RWNO DESC ) AS '@order'
                ,N'💡 [ ' + CAST(m.RWNO AS NVARCHAR(5))+ N' ] ' + mt.MTOD_DESC + 
                 CASE 

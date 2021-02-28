@@ -38,7 +38,8 @@ BEGIN
    WHEN MATCHED THEN
       UPDATE SET 
          T.CRET_BY = UPPER(SUSER_NAME())
-        ,t.CRET_DATE = GETDATE();
+        ,t.CRET_DATE = GETDATE()
+        ,T.STAT = ISNULL(S.STAT, '002');
    
 END
 GO

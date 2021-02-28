@@ -23,11 +23,16 @@ BEGIN
    	        @ExtrPrct BIGINT,
    	        @BuyPric BIGINT,
    	        @UnitCode BIGINT,
+   	        @GetBrndCode VARCHAR(30),
+   	        @GetGropCode VARCHAR(30),
    	        @BrndCode BIGINT,
    	        @GropCode BIGINT,
    	        @Qnty REAL;
    	
-      DECLARE @docHandle INT;	
+      -- Local Var
+      DECLARE @docHandle INT,
+              @StrtPont INT,
+              @Len INT;	
       EXEC sp_xml_preparedocument @docHandle OUTPUT, @X;
 
    	DECLARE C$Products CURSOR
@@ -42,18 +47,50 @@ BEGIN
         Extr_Prct BIGINT './EXTR_PRCT',
         Buy_Pric REAL './BUY_PRIC',
         Unit_Code BIGINT './UNIT_CODE',
-        Brnd_Code BIGINT './BRND_CODE',
-        Grop_Code BIGINT './GROP_CODE',
+        Brnd_Code VARCHAR(30) './BRND_CODE',
+        Grop_Code VARCHAR(30) './GROP_CODE',
+        --Brnd_Code BIGINT './BRND_CODE',
+        --Grop_Code BIGINT './GROP_CODE',
         Qnty REAL './QNTY'
       )
       ORDER BY Tarf_Code;
       
       OPEN [C$Products];
       L$LoopC$Products:
-      FETCH [C$Products] INTO @Rbid, @TarfCode, @TarfText, @ExpnPric, @ExtrPrct, @BuyPric, @UnitCode, @BrndCode, @GropCode, @Qnty;
+      FETCH [C$Products] INTO @Rbid, @TarfCode, @TarfText, @ExpnPric, @ExtrPrct, @BuyPric, @UnitCode, @GetBrndCode, @GetGropCode, @Qnty;
       
       IF @@FETCH_STATUS <> 0
          GOTO L$EndLoopC$Products;
+      
+      -- 1399/12/02 * اگر برای بدست آوردن اطلاعات مربوط به گروه و برند بخواهیم از تکنیک مخاسبه بدست آوریم      
+      IF ISNUMERIC(@GetBrndCode) = 1 SET @BrndCode = @GetBrndCode;
+      ELSE
+      BEGIN
+         SELECT @StrtPont = CASE id WHEN 2 THEN Item ELSE @StrtPont END ,
+                @Len = CASE id WHEN 3 THEN Item ELSE @StrtPont END 
+           FROM dbo.SplitString(@GetBrndCode, ':')
+          WHERE id IN (2, 3);
+         
+         SELECT @BrndCode = ge.CODE
+           FROM dbo.V#Group_Expense ge
+          WHERE ge.GROP_TYPE = '002'
+            AND ge.STAT = '002'
+            AND ge.LINK_JOIN = SUBSTRING(@TarfCode, @StrtPont, @Len)
+      END 
+      
+      IF ISNUMERIC(@GetGropCode) = 1 SET @GropCode = @GetGropCode;
+      BEGIN
+         SELECT @StrtPont = CASE id WHEN 2 THEN Item ELSE @StrtPont END ,
+                @Len = CASE id WHEN 3 THEN Item ELSE @StrtPont END 
+           FROM dbo.SplitString(@GetGropCode, ':')
+          WHERE id IN (2, 3);
+         
+         SELECT @GropCode = ge.CODE
+           FROM dbo.V#Group_Expense ge
+          WHERE ge.GROP_TYPE = '001'
+            AND ge.STAT = '002'
+            AND ge.LINK_JOIN = SUBSTRING(@TarfCode, @StrtPont, @Len)
+      END       
       
       -- اگر محصول از قبل درون سیستم وجود داشته باشد
       IF EXISTS ( 

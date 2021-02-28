@@ -116,6 +116,47 @@ BEGIN
 	      PRINT 'Submit Order to finalization'
 	   END 
 	END 
+	-- فروشگاه کنترل صنعت هوشمند
+	ELSE IF LOWER(@BotName) = '@cih_bot'
+	BEGIN
+	   -- ثبت اطلاعات مشتری
+	   IF @CmndType = 'savecust'
+	   BEGIN
+	      PRINT 'Save Customer in Remote Database'
+	   END 
+   	-- بدست آوردن اطلاعات مربوط به محصول
+	   ELSE IF @CmndType = 'infoprod'
+	   BEGIN
+	      PRINT 'Get Info Product';
+	      SET @CmndText = '	         
+	         DECLARE @XTemp XML = (
+   	         SELECT ' + CAST(@Rbid AS VARCHAR(10)) + ' AS RBID
+                      RTRIM(LTRIM(A_Code)) AS TARF_CODE, 
+                      A_Name AS TARF_TEXT, 
+                      ISNULL(EndBuy_Price, 0) AS BUY_PRIC, 
+                      ISNULL(Sel_Price, 0) AS EXPN_PRIC, 
+                      ISNULL(Exist, 0) AS QNTY, 
+                      ''TARF:1:4'' AS GROP_CODE, 
+                      ''TARF:1:2'' AS BRND_CODE, 
+                      13981881902068 AS UNIT_CODE 
+                 FROM LKS_EXTR_N.holoo1.dbo.ARTICLE
+                WHERE a_code = ''' + @ParamText + '''
+                  FOR XML PATH(''Table'')
+            );            
+            EXEC dbo.REQL_URPR_P @X = @XTemp -- xml';
+	      EXEC (@CmndText);
+	   END 
+	   -- ثبت اطلاعات سبد خرید مشتری
+	   ELSE IF @CmndType = 'saveordr'
+	   BEGIN
+	      PRINT 'Save Cart to pending'
+	   END 
+	   -- پایانی کردن درخواست خرید مشتری
+	   ELSE IF @CmndType = 'submitordr'
+	   BEGIN
+	      PRINT 'Submit Order to finalization'
+	   END 
+	END 
 	
 	--COMMIT TRAN [T$LKS_EXTR_P];
 	L$EndSP:

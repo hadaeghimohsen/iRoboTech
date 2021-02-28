@@ -46,6 +46,34 @@ GO
 -- Create date: <Create Date,,>
 -- Description:	<Description,,>
 -- =============================================
+CREATE TRIGGER [dbo].[CG$ADEL_SRBT]
+   ON  [dbo].[Service_Robot]
+   AFTER DELETE
+AS 
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+   -- Insert statements for trigger here
+   DELETE dbo.Personal_Robot
+    WHERE EXISTS(
+          SELECT *
+            FROM Deleted d
+           WHERE d.SERV_FILE_NO = dbo.Personal_Robot.SERV_FILE_NO
+             AND d.ROBO_RBID = dbo.Personal_Robot.ROBO_RBID
+    );
+END
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+-- =============================================
+-- Author:		<Author,,Name>
+-- Create date: <Create Date,,>
+-- Description:	<Description,,>
+-- =============================================
 CREATE TRIGGER [dbo].[CG$AINS_SRBT]
    ON  [dbo].[Service_Robot]
    AFTER INSERT   

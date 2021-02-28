@@ -48,7 +48,19 @@ BEGIN
 	          ,@TCode BIGINT;
 	   
 	   IF @CmndText IN ('lessreguser')
-	   BEGIN
+	   BEGIN	      
+	      -- Next Step # اطلاعات کاربر درون سیستم آرتا را بازیابی میکنیم
+	      -- Static
+	      SET @X = (
+	         SELECT --dbo.STR_FRMT_U('./{0};addcart-{1}*++$del#>>infoprod^{1}' , @UssdCode + ',' + @TarfCode) AS '@data',
+	                dbo.STR_FRMT_U('./{0};getexistsuser-$#' , '*1*0*0#') AS '@data',
+	                @index AS '@order',
+	                N'🔍 بازیابی اطلاعات کاربری' AS "text()"
+	            FOR XML PATH('InlineKeyboardButton')
+	      );
+	      SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
+	      SET @index += 1;
+	      
 	      -- Next Step #. افزودن به سبد خرید
 	      -- Static
 	      SET @X = (
@@ -492,7 +504,7 @@ BEGIN
    	      IF EXISTS(SELECT * FROM dbo.[Order] o WHERE o.CODE = @OrdrCode AND o.HOW_SHIP != '000')
    	      BEGIN
 	            -- اگر مشتری مشخص کرده باشد که با پیک یا باربری سفارش ارسال شود
-	            IF NOT EXISTS(SELECT * FROM dbo.[Order] o, dbo.Robot R WHERE R.RBID = O.SRBT_ROBO_RBID AND o.CODE = @OrdrCode AND ( ( o.HOW_SHIP = ( '002' ) AND O.DEBT_DNRM >= R.FREE_SHIP_INCT_AMNT ) OR ( o.HOW_SHIP = ( '003' ) AND O.DEBT_DNRM >= R.FREE_SHIP_OTCT_AMNT ) ) )
+	            IF EXISTS(SELECT * FROM dbo.[Order] o, dbo.Robot R WHERE R.RBID = O.SRBT_ROBO_RBID AND o.CODE = @OrdrCode AND ( ( o.HOW_SHIP = ( '002' ) AND O.DEBT_DNRM >= R.FREE_SHIP_INCT_AMNT ) OR ( o.HOW_SHIP = ( '003' ) AND O.DEBT_DNRM >= R.FREE_SHIP_OTCT_AMNT ) ) )
 	            BEGIN
 	               -- Next Step #. Payment Operation
 	               -- Static
@@ -945,6 +957,7 @@ BEGIN
 	               AND o.DEST_CARD_NUMB_DNRM = b.CARD_NUMB_DNRM
 	               AND o.ORDR_TYPE = b.ORDR_TYPE_DNRM
 	               AND b.ACNT_STAT_DNRM = '002'
+	               AND o.SRBT_ROBO_RBID = b.SRBT_ROBO_RBID
 	               FOR XML PATH('InlineKeyboardButton')
 	         );
 	         SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
@@ -959,6 +972,7 @@ BEGIN
 	               AND o.DEST_CARD_NUMB_DNRM = b.CARD_NUMB_DNRM
 	               AND o.ORDR_TYPE = b.ORDR_TYPE_DNRM
 	               AND b.ACNT_STAT_DNRM = '002'
+	               AND o.SRBT_ROBO_RBID = b.SRBT_ROBO_RBID
 	               FOR XML PATH('InlineKeyboardButton')
 	         );
 	         SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
@@ -1053,6 +1067,39 @@ BEGIN
 	      );
 	      SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
 	      SET @index += 1;
+	   END 
+	   ELSE IF @CmndText IN ( 'lesspaycart')
+	   BEGIN
+	   	-- اضافه کردن مدت زمان ده دقیقه به درخواست برای پرداخت
+	      UPDATE dbo.[Order] 	      
+	         SET STRT_DATE = DATEADD(MINUTE, 10, o.STRT_DATE) 
+	        FROM dbo.[Order] o, dbo.Robot r
+	       WHERE r.RBID = o.SRBT_ROBO_RBID
+	         AND CODE = @OrdrCode
+	         AND ABS(DATEDIFF(MINUTE, DATEADD(MINUTE, r.ORDR_EXPR_TIME, STRT_DATE), GETDATE())) < 10;
+	      
+	      IF EXISTS(SELECT * FROM dbo.[Order] WHERE CODE = @OrdrCode AND DEBT_DNRM > 0)
+	      BEGIN
+	         -- Next Step #. Payment
+	         -- Dynamic
+	         SET @X = (
+	            SELECT dbo.STR_FRMT_U('./{0};-{1}$pay#' , '*0*3#' + ',' + CAST(@OrdrCode AS NVARCHAR(50))) AS '@data',
+	                   @index AS '@order',
+	                   N'💳 پرداخت' AS "text()"
+	               FOR XML PATH('InlineKeyboardButton')
+	         );
+	         SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');
+	         SET @index += 1;
+	         
+	         SET @X = (
+               SELECT dbo.STR_FRMT_U('./{0};order::cancel-{1}$del#', @UssdCode + ',' + CAST(@OrdrCode AS VARCHAR(30)) ) AS '@data',
+                      @index AS '@order',
+                      N'❌ انصراف درخواست' AS "text()"
+                  FOR XML PATH('InlineKeyboardButton')
+            );
+            SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
+            SET @index += 1;
+	      END 
 	   END 
 	   ELSE IF @CmndText IN ( 'lessinfocart' )
 	   BEGIN
@@ -1847,14 +1894,14 @@ BEGIN
 	      
 	      -- Next Step #. Backup to UP MENU
          -- Static
-         SET @X = (
-            SELECT dbo.STR_FRMT_U('./{0};addamntwlet-' + @ParamsText + ',200000$del,lessaddwlet#' , /*'*0*3*3#'*/ @UssdCode )  AS '@data',
-                   @index AS '@order',
-                   N'➕ 200,000 ریال' AS "text()"
-               FOR XML PATH('InlineKeyboardButton')
-         );
-         SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
-         SET @index += 1;
+         --SET @X = (
+         --   SELECT dbo.STR_FRMT_U('./{0};addamntwlet-' + @ParamsText + ',200000$del,lessaddwlet#' , /*'*0*3*3#'*/ @UssdCode )  AS '@data',
+         --          @index AS '@order',
+         --          N'➕ 200,000 ریال' AS "text()"
+         --      FOR XML PATH('InlineKeyboardButton')
+         --);
+         --SET @XRet.modify('insert sql:variable("@X") as last into (.)[1]');	      
+         --SET @index += 1;
          
          -- Next Step #. Backup to UP MENU
          -- Static

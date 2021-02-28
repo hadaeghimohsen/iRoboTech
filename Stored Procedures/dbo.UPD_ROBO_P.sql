@@ -62,7 +62,8 @@ CREATE PROCEDURE [dbo].[UPD_ROBO_P]
 	@Crnc_Cycl_Auto_Updt INT,
 	@Extr_Sorc_Stat VARCHAR(3),
 	@Slct_Srvr_Type VARCHAR(3),
-	@Crnc_How_Updt_Stat VARCHAR(3)
+	@Crnc_How_Updt_Stat VARCHAR(3),
+	@Max_Card_To_Card_Amnt BIGINT
 AS
 BEGIN
  	-- بررسی دسترسی کاربر
@@ -133,6 +134,7 @@ BEGIN
 		   ,CRNC_AUTO_UPDT_STAT = @Crnc_Auto_Updt_Stat
 		   ,CRNC_CYCL_AUTO_UPDT = @Crnc_Cycl_Auto_Updt
 		   ,CRNC_HOW_UPDT_STAT = @Crnc_How_Updt_Stat
+		   ,MAX_CARD_TO_CARD_AMNT = @Max_Card_To_Card_Amnt
     WHERE RBID = @Rbid;
 END
 GO

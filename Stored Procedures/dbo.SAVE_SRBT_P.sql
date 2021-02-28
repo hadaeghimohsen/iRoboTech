@@ -132,7 +132,7 @@ BEGIN
    END
    -- ذخیره سازی اطلاعات معرف
    ELSE IF @ActnType = '002'
-   BEGIN      
+   BEGIN
       UPDATE dbo.Service_Robot
          SET REF_CHAT_ID = @RefChatId,
              REF_SERV_FILE_NO = (SELECT sr.SERV_FILE_NO FROM Service_Robot sr WHERE ROBO_RBID = @Rbid AND CHAT_ID = @RefChatid),
@@ -382,6 +382,88 @@ BEGIN
             FOR XML PATH('Message'), ROOT('Result')         
       );
    END
+   -- ذخیره سازی اطلاعات مشتری از طریق زیر سیستم 5
+   ELSE IF @ActnType = '010'
+   BEGIN
+      IF @SubSys = 5
+      BEGIN
+         IF NOT EXISTS(SELECT * FROM iScsc.dbo.Fighter f WHERE f.CHAT_ID_DNRM = @ChatId)
+         BEGIN
+            SET @XRet = (
+               SELECT 'failed' AS '@rsltdesc',
+                      '001' AS '@rsltcode',
+                      N'❗️ کد دستگاه شما *' + CAST(@ChatId AS NVARCHAR(30)) + N'* میباشد، با این شماره درون اتوماسیون ثبت نشده اید، لطفا از منوی لیست اعضا درخواست اصلاح اطلاعات کد بله خود را ثبت کنید و سپس اقدام کنید'
+                  FOR XML PATH('Message'), ROOT('Result')
+            );
+            GOTO L$EndSp;
+         END
+      END   
+
+      IF dbo.CHK_MOBL_U(@CellPhon) = 0
+      BEGIN
+         SET @XRet = (
+            SELECT 'failed' AS '@rsltdesc',
+                   '001' AS '@rsltcode',
+                   N'⛔️ شماره موبایل *' + @CellPhon + N'* وارد شده درست نمی باشد' + CHAR(10) + 
+                   N'لطفا در ورود اطلاعات خود دقت فرمایید'
+               FOR XML PATH('Message'), ROOT('Result')
+         );
+         GOTO L$EndSp;
+      END
+      
+      -- اگر مشتری ایرانی باشد چک کردن کد ملی لازم و ضروری میباشد
+      IF @CmndText = 'reguser'            
+         IF dbo.CHK_NATL_U(@NatlCode) = 0
+         BEGIN
+            SET @XRet = (
+               SELECT 'failed' AS '@rsltdesc',
+                      '001' AS '@rsltcode',
+                      N'⛔️ کد ملی *' + @NatlCode + N'* وارد شده درست نمی باشد' + CHAR(10) + 
+                      N'لطفا در ورود اطلاعات خود دقت فرمایید'
+                  FOR XML PATH('Message'), ROOT('Result')
+            );
+            GOTO L$EndSp;
+         END
+      
+      -- ثبت اطلاعات درون جدول مشتریان ربات
+      -- Service_Robot, Service_Robot_Public
+      UPDATE dbo.Service_Robot
+         SET REAL_FRST_NAME = @FrstName
+            ,REAL_LAST_NAME = @LastName
+            ,CELL_PHON = @CellPhon
+            ,OTHR_CELL_PHON = @CellPhon
+            ,NATL_CODE = @NatlCode
+            ,NAME = @FrstName + N' ' + @LastName
+       WHERE CHAT_ID = @ChatId
+         AND ROBO_RBID = @Rbid;
+      
+      UPDATE srp
+         SET srp.Cell_Phon = @CellPhon
+            ,srp.CORD_X = 0
+            ,srp.CORD_Y = 0
+            ,srp.NAME = @FrstName + N' ' + @LastName
+        FROM dbo.Service_Robot_Public srp, dbo.Service_Robot sr
+       WHERE srp.SRBT_SERV_FILE_NO = sr.SERV_FILE_NO
+         AND srp.SRBT_ROBO_RBID = sr.ROBO_RBID
+         AND srp.RWNO = ISNULL(sr.SRPB_RWNO, srp.RWNO)
+         AND sr.CHAT_ID = @ChatId
+         AND sr.ROBO_RBID = @Rbid;
+   
+      SET @XRet = (
+         SELECT 'successful' AS '@rsltdesc',
+                '002' AS '@rsltcode',
+                N'💾 اطلاعات با موفقیت ثبت شده' + CHAR(10) + 
+                N'📲 کد دستگاه شما : *' + CAST(@ChatId AS NVARCHAR(30)) + N'*' + CHAR(10) + 
+                N'نام : *' + sr.REAL_FRST_NAME + N'*' + CHAR(10) + 
+                N'فامیل : *' + sr.REAL_LAST_NAME + N'*' + CHAR(10) + 
+                N'شماره موبایل : *' + sr.OTHR_CELL_PHON + N'*' + CHAR(10) + 
+                N'کد ملی : *' + sr.NATL_CODE + N'*' 
+           FROM dbo.Service_Robot sr
+          WHERE sr.ROBO_RBID = @Rbid
+            AND sr.CHAT_ID = @ChatId
+            FOR XML PATH('Message'), ROOT('Result')         
+      );   
+   END 
    
    --
    L$EndSp:

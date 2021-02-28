@@ -90,7 +90,10 @@ BEGIN
 	           @PRODSUPLLOCTSTAT varchar(3) ,
 	           @PRODSUPLLOCTDESC nvarchar(250) ,
 	           @RESPSHIPCOSTTYPE varchar(3) ,
-	           @APRXSHIPCOSTAMNT bigint;
+	           @APRXSHIPCOSTAMNT BIGINT,
+	           @CrncCalcStat VARCHAR(3),
+              @CrncExpnAmnt MONEY,
+              @BARCODE VARCHAR(100); -- varchar(3)
 	   
 	   SELECT @ROBORBID = p.ROBO_RBID,
 	          @CODE = p.CODE ,
@@ -133,7 +136,10 @@ BEGIN
 	          @PRODSUPLLOCTSTAT = p.PROD_SUPL_LOCT_STAT ,
 	          @PRODSUPLLOCTDESC = p.PROD_SUPL_LOCT_DESC ,
 	          @RESPSHIPCOSTTYPE = p.RESP_SHIP_COST_TYPE ,
-	          @APRXSHIPCOSTAMNT = p.APRX_SHIP_COST_AMNT
+	          @APRXSHIPCOSTAMNT = p.APRX_SHIP_COST_AMNT,
+	          @CrncCalcStat = p.CRNC_CALC_STAT,
+	          @CrncExpnAmnt = p.CRNC_EXPN_AMNT,
+	          @BARCODE = p.BAR_CODE
 	     FROM dbo.Robot_Product p
 	    WHERE p.TARF_CODE = @SorcTarfCode;
 	   
@@ -195,7 +201,10 @@ BEGIN
                @PROD_SUPL_LOCT_STAT = @PRODSUPLLOCTSTAT,
                @PROD_SUPL_LOCT_DESC = @PRODSUPLLOCTDESC,
                @RESP_SHIP_COST_TYPE = @RESPSHIPCOSTTYPE,
-               @APRX_SHIP_COST_AMNT = @APRXSHIPCOSTAMNT; -- varchar(3)
+               @APRX_SHIP_COST_AMNT = @APRXSHIPCOSTAMNT,
+               @Crnc_Calc_Stat = @CrncCalcStat,
+               @Crnc_Expn_Amnt = @CrncExpnAmnt,
+               @BAR_CODE = NULL; -- varchar(3)
          
          SELECT @CODE = p.CODE
             FROM dbo.Robot_Product p

@@ -13,7 +13,8 @@ CREATE TABLE [dbo].[Robot_External_Query]
 [CRET_BY] [varchar] (250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [CRET_DATE] [datetime] NULL,
 [MDFY_BY] [varchar] (250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-[MDFY_DATE] [datetime] NULL
+[MDFY_DATE] [datetime] NULL,
+[ACNT_APP_TYPE] [varchar] (3) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
 ) ON [PRIMARY]
 GO
 SET QUOTED_IDENTIFIER ON
@@ -80,6 +81,8 @@ GO
 ALTER TABLE [dbo].[Robot_External_Query] ADD CONSTRAINT [PK_Robot_External_Datasource_Query] PRIMARY KEY CLUSTERED  ([CODE]) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[Robot_External_Query] ADD CONSTRAINT [FK_REXQ_ROBO] FOREIGN KEY ([ROBO_RBID]) REFERENCES [dbo].[Robot] ([RBID]) ON DELETE CASCADE
+GO
+EXEC sp_addextendedproperty N'MS_Description', N'نام نرم افزار حسابداری', 'SCHEMA', N'dbo', 'TABLE', N'Robot_External_Query', 'COLUMN', N'ACNT_APP_TYPE'
 GO
 EXEC sp_addextendedproperty N'MS_Description', N'نوع پول ارتباطی
 Connection String Local Server Or Web Server', 'SCHEMA', N'dbo', 'TABLE', N'Robot_External_Query', 'COLUMN', N'DATA_SORC_TYPE'

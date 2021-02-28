@@ -84,7 +84,7 @@ BEGIN
 	
 	-- مشخص شدن نوع درخواست ارسال شده
 	SELECT @OrdrType = o.ORDR_TYPE,
-	       @OrdrTypeNumb = o.ORDR_TYPE_NUMB
+	       @OrdrTypeNumb = o.ORDR_TYPE_NUMB	       
 	  FROM dbo.[Order] o
 	 WHERE o.CODE = @OrdrCode;
 
@@ -98,6 +98,7 @@ BEGIN
 	      AND sr.SERV_FILE_NO = g.SRBT_SERV_FILE_NO
 	      AND sr.ROBO_RBID = g.SRBT_ROBO_RBID
 	      AND g.GROP_GPID = 131
+	      AND sr.ROBO_RBID = 401 -- در این قسمت فقط فروشگاه اینترنتی را بررسی میکنیم
 	      AND g.STAT = '002'
 	      AND w.WLET_TYPE = '001' -- کیف پول اعتباری
 	      AND w.AMNT_DNRM > 0
@@ -657,12 +658,12 @@ BEGIN
 	         SELECT @OrdrCmnt = N'👈 ثبت دوره غیرحضوری',
 	                @OrdrDesc = 
 	                  CASE f.SEX_TYPE_DNRM WHEN '001' THEN N'👱 ' WHEN '002' THEN N'👩 ' END + 
-	                  N'*'+ f.NAME_DNRM + N'* ' +
-	                  N'📔 *'+ m.MTOD_DESC + N'* ' +
-	                  N'📦 *' + cb.CTGY_DESC + N'* ' +
+	                  N' '+ f.NAME_DNRM + N'  ' +
+	                  N'📔 '+ m.MTOD_DESC + N' ' +
+	                  N'📦  ' + cb.CTGY_DESC + N'  ' +
 	                  CASE s.VALU WHEN '001' THEN N' 👬 ' WHEN '002' THEN N' 👭 ' WHEN '003' THEN N' 👫 ' END +
-	                  N'[ *' + s.DOMN_DESC + N'* ] ☀️ [ *' + d.DOMN_DESC + N'* ] [ *' +  CAST(cm.STRT_TIME AS VARCHAR(5)) + N'* ] - [ *' + CAST(cm.END_TIME AS VARCHAR(5)) + N'* ]' + 
-	                  (
+	                  N'[  ' + s.DOMN_DESC + N'  ] ☀️ [  ' + d.DOMN_DESC + N'  ] [  ' +  CAST(cm.STRT_TIME AS VARCHAR(5)) + N'  ] - [  ' + CAST(cm.END_TIME AS VARCHAR(5)) + N'  ]' + 
+	                  /*(
 	                     SELECT N'[ *' + d.DOMN_DESC + N'* ] ,'
 	                       FROM iScsc.dbo.Club_Method_Weekday cmw, iScsc.dbo.[D$WKDY] d
 	                      WHERE cmw.CBMT_CODE = cm.CODE
@@ -670,8 +671,8 @@ BEGIN
 	                        AND cmw.STAT = '002'
 	                        ORDER BY d.VALU
 	                        FOR XML PATH('')	                    
-	                  ) + CHAR(10) + 
-	                  N'📆 [ *شروع دوره* ] *' + iRoboTech.dbo.GET_MTOS_U(@TarfDate) + N'*',
+	                  )*/ + CHAR(10) + 
+	                  N'📆 [  شروع دوره  ]  ' + iRoboTech.dbo.GET_MTOS_U(@TarfDate) + N' ',
 	                  @ExpnPric = cb.PRIC
               FROM iScsc.dbo.Method m, iScsc.dbo.Category_Belt cb, iScsc.dbo.Club_Method cm, iScsc.dbo.Fighter f, iScsc.dbo.[D$SXTP] s, iScsc.dbo.[D$DYTP] d
              WHERE m.CODE = cb.MTOD_CODE
@@ -1249,12 +1250,12 @@ BEGIN
 	         SELECT @OrdrCmnt = N'👈 ثبت دوره غیرحضوری',
 	                @OrdrDesc = 
 	                  CASE f.SEX_TYPE_DNRM WHEN '001' THEN N'👱 ' WHEN '002' THEN N'👩 ' END + 
-	                  N'*'+ f.NAME_DNRM + N'* ' +
-	                  N'📔 *'+ m.MTOD_DESC + N'* ' +
-	                  N'📦 *' + cb.CTGY_DESC + N'* ' +
+	                  N' '+ f.NAME_DNRM + N' ' +
+	                  N'📔  '+ m.MTOD_DESC + N'  ' +
+	                  N'📦  ' + cb.CTGY_DESC + N'  ' +
 	                  CASE s.VALU WHEN '001' THEN N' 👬 ' WHEN '002' THEN N' 👭 ' WHEN '003' THEN N' 👫 ' END +
-	                  N'[ *' + s.DOMN_DESC + N'* ] ☀️ [ *' + d.DOMN_DESC + N'* ] [ *' +  CAST(cm.STRT_TIME AS VARCHAR(5)) + N'* ] - [ *' + CAST(cm.END_TIME AS VARCHAR(5)) + N'* ]' + 
-	                  (
+	                  N'[  ' + s.DOMN_DESC + N'  ] ☀️ [  ' + d.DOMN_DESC + N'  ] [  ' +  CAST(cm.STRT_TIME AS VARCHAR(5)) + N'  ] - [  ' + CAST(cm.END_TIME AS VARCHAR(5)) + N'  ]' + 
+	                  /*(
 	                     SELECT N'[ *' + d.DOMN_DESC + N'* ] ,'
 	                       FROM iScsc.dbo.Club_Method_Weekday cmw, iScsc.dbo.[D$WKDY] d
 	                      WHERE cmw.CBMT_CODE = cm.CODE
@@ -1262,8 +1263,8 @@ BEGIN
 	                        AND cmw.STAT = '002'
 	                        ORDER BY d.VALU
 	                        FOR XML PATH('')	                    
-	                  ) + CHAR(10) + 
-	                  N'📆 [ *شروع دوره* ] *' + iRoboTech.dbo.GET_MTOS_U(@TarfDate) + N'*',
+	                  )*/ + CHAR(10) + 
+	                  N'📆 [  شروع دوره  ]  ' + iRoboTech.dbo.GET_MTOS_U(@TarfDate) + N'  ',
 	                  @ExpnPric = cb.PRIC
               FROM iScsc.dbo.Method m, iScsc.dbo.Category_Belt cb, iScsc.dbo.Club_Method cm, iScsc.dbo.Fighter f, iScsc.dbo.[D$SXTP] s, iScsc.dbo.[D$DYTP] d
              WHERE m.CODE = cb.MTOD_CODE
@@ -1845,7 +1846,7 @@ BEGIN
 	      ,o.DSCN_AMNT_DNRM = (SELECT SUM(((od.EXPN_PRIC + od.EXTR_PRCT) * od.NUMB) * ISNULL(od.OFF_PRCT, 0) / 100 ) FROM dbo.Order_Detail od WHERE od.ORDR_CODE = o.CODE) + 
 	                          (SELECT ISNULL(SUM(os.AMNT), 0) FROM dbo.Order_State os WHERE os.ORDR_CODE = @OrdrCode AND os.AMNT_TYPE = '002' /* تخفیفات سفارش */)
 	      ,o.AMNT_TYPE = @AmntType
-	      --**##,o.DELV_TIME_DNRM = (SELECT MAX(ISNULL(od.DELV_TIME_DNRM, 0)) FROM dbo.Order_Detail od WHERE od.ORDR_CODE = o.CODE)
+	      ,o.HOW_SHIP = CASE o.SRBT_ROBO_RBID WHEN 401 THEN o.HOW_SHIP ELSE '001' END 
 	  FROM dbo.[Order] o
 	 WHERE o.CODE = @OrdrCode;	
    

@@ -113,6 +113,9 @@ BEGIN
          VALUES(@OrdrCode, @WletCode, dbo.GNRT_NVID_U(), @AmntType, @Amnt, GETDATE(), '001', '003', DATEADD(DAY, @ConfDay, GETDATE()), @OrdrDesc);
    	END 
    	
+   	-- 1399/12/04 * پایانی کردن درخواست واریز وجه پاداش
+   	UPDATE dbo.[Order] SET ORDR_STAT = '004' WHERE CODE = @OrdrCode;
+   	
       -- ارسال پیام به مشتری جهت واریز وجه به حساب کیف پول
       INSERT INTO dbo.[Order] ( SRBT_SERV_FILE_NO ,SRBT_ROBO_RBID ,CHAT_ID ,SUB_SYS ,ORDR_CODE ,CODE ,ORDR_TYPE ,ORDR_STAT )
       SELECT sr.SERV_FILE_NO, sr.ROBO_RBID, sr.CHAT_ID, 5, @OrdrCode, dbo.GNRT_NVID_U(), '012', '001'

@@ -49,6 +49,11 @@ BEGIN
              FOR XML PATH('Router_Command')
       );           
    END 
+   ELSE IF @CmndCode = '102'
+   BEGIN      
+      SET @X = @X.query('//Service');
+      EXEC dbo.SAVE_SRBT_P @X = @X, @XRet = @xRet OUTPUT;      
+   END 
    ELSE IF @CmndCode = '1000'
    BEGIN
       -- Log Event

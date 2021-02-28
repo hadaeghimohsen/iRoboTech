@@ -38,7 +38,7 @@ BEGIN
 	       ,@TOrdrType VARCHAR(3)        ,@TCode BIGINT;
 
    	
-	SELECT @Rbid = o.SRBT_ROBO_RBID
+	SELECT @Rbid = 401--o.SRBT_ROBO_RBID
 	      ,@ChatId = o.CHAT_ID
 	      ,@RcptMtod = o.PYMT_MTOD
 	      ,@DestCardNumb = o.DEST_CARD_NUMB_DNRM
@@ -149,7 +149,7 @@ BEGIN
                AND srg.STAT = '002'
                AND g.STAT = '002'
                AND g.ADMN_ORGN = '002'
-               AND g.GPID = 131
+               AND g.GPID = 131--CASE @Rbid WHEN 401 THEN 131 WHEN 391 THEN 122 END 
                AND EXISTS (
                    SELECT *
                      FROM dbo.Service_Robot_Card_Bank a
@@ -170,7 +170,8 @@ BEGIN
                   CASE @OrdrType WHEN '004' THEN N'مبلغ واریز بابت سفارش فروش انلاین' WHEN '015' THEN N'مبلغ افزایش نقدینگی کیف پول مشتری' END 
               FROM dbo.[Order] o, dbo.Order_State os, dbo.Wallet w
              WHERE o.CODE = @OrdrCode
-               AND o.SRBT_ROBO_RBID = w.SRBT_ROBO_RBID
+               --AND o.SRBT_ROBO_RBID = w.SRBT_ROBO_RBID -- 1399/12/07
+               AND w.SRBT_ROBO_RBID = @Rbid -- 1397/12/07
                AND @TChatId = w.CHAT_ID -- اطلاعات کیف پول فروشگاه
                AND w.WLET_TYPE = '002' -- کیف پول نقدینگی
                AND o.CODE = os.ORDR_CODE
@@ -182,7 +183,8 @@ BEGIN
             SELECT o.CODE, w.CODE, dbo.GNRT_NVID_U(), o.AMNT_TYPE, ISNULL(o.SUM_FEE_AMNT_DNRM, 0), GETDATE(), '002', '002', GETDATE(), N'مبلغ کارمزد بابت سفارش فروش انلاین'
               FROM dbo.[Order] o, dbo.Wallet w
              WHERE o.CODE = @OrdrCode
-               AND o.SRBT_ROBO_RBID = w.SRBT_ROBO_RBID
+               --AND o.SRBT_ROBO_RBID = w.SRBT_ROBO_RBID -- 1397/12/07
+               AND w.SRBT_ROBO_RBID = @Rbid -- 1397/12/07
                AND @TChatId = w.CHAT_ID -- اطلاعات کیف پول فروشگاه
                AND w.WLET_TYPE = '001' -- کیف پول اعتباری
                AND ISNULL(o.SUM_FEE_AMNT_DNRM, 0) > 0;

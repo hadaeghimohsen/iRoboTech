@@ -64,8 +64,16 @@ BEGIN
               @CRNC_CALC_STAT VARCHAR(3),
               @CRNC_EXPN_AMNT MONEY,
               @BAR_CODE VARCHAR(100);
-
-      DECLARE @docHandle INT;	
+      
+      -- Local Var
+      DECLARE @docHandle INT,
+     	        @GetBrndCode VARCHAR(30),
+   	        @GetGropCode VARCHAR(30),
+   	        @BrndCode BIGINT,
+   	        @GropCode BIGINT,
+   	        @StrtPont INT,
+   	        @Len INT;
+   	        
       EXEC sp_xml_preparedocument @docHandle OUTPUT, @X;
 
    	DECLARE C$Products CURSOR
@@ -76,7 +84,7 @@ BEGIN
              rp.RELS_TIME  ,rp.STAT  ,rp.ALRM_MIN_NUMB_DNRM  ,rp.PROD_TYPE_DNRM  ,rp.MIN_ORDR_DNRM  ,rp.MADE_IN_DNRM  ,
              rp.GRNT_STAT_DNRM  ,rp.GRNT_NUMB_DNRM  ,rp.GRNT_TIME_DNRM  ,rp.GRNT_TYPE_DNRM  ,rp.GRNT_DESC_DNRM  ,
              rp.WRNT_STAT_DNRM  ,rp.WRNT_NUMB_DNRM  ,rp.WRNT_TIME_DNRM  ,rp.WRNT_TYPE_DNRM  ,rp.WRNT_DESC_DNRM  ,
-             rp.WEGH_AMNT_DNRM  ,rp.NUMB_TYPE , rc.Qnty , rc.Tarf_Text, rc.Expn_Pric, rc.Buy_Pric, rp.PROD_LIFE_STAT, rp.PROD_SUPL_LOCT_STAT,
+             rp.WEGH_AMNT_DNRM  ,rp.NUMB_TYPE , rc.Qnty , rc.Tarf_Text, rc.Expn_Pric, rc.Buy_Pric, rc.Brnd_Code, rc.Grop_Code, rp.PROD_LIFE_STAT, rp.PROD_SUPL_LOCT_STAT,
              rp.PROD_SUPL_LOCT_DESC, rp.RESP_SHIP_COST_TYPE, rp.APRX_SHIP_COST_AMNT, rp.CRNC_CALC_STAT, rp.CRNC_EXPN_AMNT, rp.BAR_CODE
       FROM dbo.Robot_Product rp, OPENXML(@docHandle, N'//Table')
       WITH (
@@ -85,7 +93,9 @@ BEGIN
         Tarf_Text NVARCHAR(250) './TARF_TEXT',
         Expn_Pric REAL './EXPN_PRIC',
         Qnty REAL './QNTY',
-        Buy_Pric REAL './BUY_PRIC'
+        Buy_Pric REAL './BUY_PRIC',
+        Brnd_Code VARCHAR(30) './BRND_CODE',
+        Grop_Code VARCHAR(30) './GROP_CODE'
       ) Rc
       WHERE rp.TARF_CODE = rc.Tarf_Code
         AND rp.ROBO_RBID = rc.Rbid
@@ -100,14 +110,48 @@ BEGIN
          @RELS_TIME  ,@STAT  ,@ALRM_MIN_NUMB_DNRM  ,@PROD_TYPE_DNRM  ,@MIN_ORDR_DNRM  ,@MADE_IN_DNRM  ,
          @GRNT_STAT_DNRM  ,@GRNT_NUMB_DNRM  ,@GRNT_TIME_DNRM  ,@GRNT_TYPE_DNRM  ,@GRNT_DESC_DNRM  ,
          @WRNT_STAT_DNRM  ,@WRNT_NUMB_DNRM  ,@WRNT_TIME_DNRM  ,@WRNT_TYPE_DNRM  ,@WRNT_DESC_DNRM  ,
-         @WEGH_AMNT_DNRM  ,@NUMB_TYPE , @Qnty, @TARF_TEXT_NEW, @EXPN_PRIC_NEW, @BUY_PRIC_NEW, @ProdLifeStat, @ProdSuplLoctStat,
+         @WEGH_AMNT_DNRM  ,@NUMB_TYPE , @Qnty, @TARF_TEXT_NEW, @EXPN_PRIC_NEW, @BUY_PRIC_NEW, @GetBrndCode, @GetGropCode, @ProdLifeStat, @ProdSuplLoctStat,
          @ProdSuplLoctDesc, @RespShipCostType, @AprxShipCostAmnt, @CRNC_CALC_STAT, @CRNC_EXPN_AMNT, @BAR_CODE ;
       
       IF @@FETCH_STATUS <> 0
          GOTO L$EndLoopC$Products;
       
-      IF(@TARF_TEXT_DNRM != @TARF_TEXT_NEW OR @EXPN_PRIC_DNRM != @EXPN_PRIC_NEW OR @BUY_PRIC != @BUY_PRIC_NEW)   
+      -- 1399/12/03 * اگر گروه کالا یا برند کالا عوض شده باشد * ( البته این قضیه برای نرم افزار حسابداری هلو میباشد )
+      IF ISNUMERIC(@GetBrndCode) = 1 SET @BrndCode = @GetBrndCode;
+      ELSE
+      BEGIN
+         SELECT @StrtPont = CASE id WHEN 2 THEN Item ELSE @StrtPont END ,
+                @Len = CASE id WHEN 3 THEN Item ELSE @StrtPont END 
+           FROM dbo.SplitString(@GetBrndCode, ':')
+          WHERE id IN (2, 3);
+         
+         SELECT @BrndCode = ge.CODE
+           FROM dbo.V#Group_Expense ge
+          WHERE ge.GROP_TYPE = '002'
+            AND ge.STAT = '002'
+            AND ge.LINK_JOIN = SUBSTRING(@TARF_CODE, @StrtPont, @Len)
+      END 
+      
+      IF ISNUMERIC(@GetGropCode) = 1 SET @GropCode = @GetGropCode;
+      BEGIN
+         SELECT @StrtPont = CASE id WHEN 2 THEN Item ELSE @StrtPont END ,
+                @Len = CASE id WHEN 3 THEN Item ELSE @StrtPont END 
+           FROM dbo.SplitString(@GetGropCode, ':')
+          WHERE id IN (2, 3);
+         
+         SELECT @GropCode = ge.CODE
+           FROM dbo.V#Group_Expense ge
+          WHERE ge.GROP_TYPE = '001'
+            AND ge.STAT = '002'
+            AND ge.LINK_JOIN = SUBSTRING(@TARF_CODE, @StrtPont, @Len)
+      END       
+      
+      IF(@TARF_TEXT_DNRM != @TARF_TEXT_NEW OR @EXPN_PRIC_DNRM != @EXPN_PRIC_NEW OR @BUY_PRIC != @BUY_PRIC_NEW OR @BrndCode IS NOT NULL OR @GropCode IS NOT NULL)   
       BEGIN 
+         -- 1399/12/03 * اگر مقدار برند و گروه متفاوت باشد
+         IF @BrndCode != @BRND_CODE_DNRM SET @BRND_CODE_DNRM = @BrndCode;
+         IF @GropCode != @GROP_CODE_DNRM SET @GROP_CODE_DNRM = @GropCode;
+         
          -- Exec Procedure For Save And Insert Products
          EXEC dbo.UPD_RBPR_P @CODE = @CODE, -- bigint
             @ROBO_RBID = @Rbid, -- bigint
